@@ -12,7 +12,7 @@ import { pushToTalkTriggerKey } from '@proj-airi/stage-ui/composables/push-to-ta
 import { trackButtonPlugin } from '@proj-airi/stage-ui/directives/track-button'
 import { browserAuthorizationHandler, registerAuthorizationHandler } from '@proj-airi/stage-ui/libs/auth'
 import { piniaPluginTracing, setupSynced } from '@proj-airi/stage-ui/libs/pinia'
-import { configureAnalyticsAdapter, startErrorReporting } from '@proj-airi/stage-ui/libs/product-signals'
+import { startErrorReporting } from '@proj-airi/stage-ui/libs/product-signals'
 import { settingsSearch } from '@proj-airi/stage-ui/libs/settings-search'
 import { useSettingsAnalytics } from '@proj-airi/stage-ui/stores/settings/analytics'
 import { MotionPlugin } from '@vueuse/motion'
@@ -50,10 +50,7 @@ import '@fontsource/m-plus-rounded-1c/index.css'
 import '@fontsource/maple-mono/index.css'
 import '@fontsource-variable/nunito/index.css'
 
-configureAnalyticsAdapter(async (options) => {
-  const { loadAnalyticsProviders } = await import('@proj-airi/stage-ui/libs/product-signals/providers')
-  return loadAnalyticsProviders(options)
-})
+// PRIVACY: no usage analytics. The PostHog/OpenPanel loader is never configured, so nothing is ever sent.
 registerAuthorizationHandler(browserAuthorizationHandler)
 
 // The settings search lists only what these modules hold. Each module decides at runtime whether it is on.

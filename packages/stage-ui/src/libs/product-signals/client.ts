@@ -1,7 +1,5 @@
 import type { AboutBuildInfo } from '../../components/scenarios/about/types'
 
-import { isEnvTruthy } from '@proj-airi/stage-shared'
-
 /**
  * Request headers that carry the current analytics identity of each provider to the API.
  *
@@ -187,8 +185,11 @@ export function configureAnalyticsAdapter(loader: AnalyticsAdapterLoader): void 
   adapterLoader = loader
 }
 
+/**
+ * PRIVACY: always false in this fork. Analytics and error reports never run, whatever `VITE_ENABLE_ANALYTICS` says.
+ */
 export function isAnalyticsAvailableInBuild(): boolean {
-  return isEnvTruthy(import.meta.env.VITE_ENABLE_ANALYTICS)
+  return false
 }
 
 export function enableAnalyticsCapture(): boolean {
