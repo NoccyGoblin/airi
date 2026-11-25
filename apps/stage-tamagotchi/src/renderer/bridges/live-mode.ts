@@ -8,7 +8,7 @@ import { useChatSessionStore } from '@proj-airi/stage-ui/stores/chat/session-sto
 import { formatDistanceStrict } from 'date-fns'
 import { nanoid } from 'nanoid'
 
-import { electronLiveModeTick, electronLookAtScreen } from '../../shared/eventa'
+import { electronLiveModeLatestFrame, electronLiveModeSetActive, electronLiveModeTick } from '../../shared/eventa'
 import { useLiveModeStore } from '../stores/live-mode'
 
 type RendererContext = ReturnType<typeof createContext>['context']
@@ -18,9 +18,9 @@ export const LIVE_MODE_SOURCE = 'live-mode'
 /** The pacing of live mode, in milliseconds. */
 export const LIVE_MODE_PACE = {
   /** The chat must be quiet this long before the character looks by herself. */
-  quietBeforeLook: 45_000,
+  quietBeforeLook: 30_000,
   /** At most one look in this time. */
-  lookEvery: 40_000,
+  lookEvery: 30_000,
   /** The character can check on the owner once, when her message has no answer for this long. */
   noAnswer: 3 * 60_000,
   /** After that, she looks again only when the chat was quiet this long. */
@@ -28,13 +28,15 @@ export const LIVE_MODE_PACE = {
 }
 
 /** What live mode does on one beat. */
-export type LiveModeStep = 'wait' | 'look' | 'check-in'
+export type LiveModeStep = 'wait' | 'first-look' | 'look' | 'check-in'
 
 export interface LiveModeState {
   now: number
   /** Real messages of the conversation in order. Notices are left out. */
   messages: readonly { id: string, role: 'user' | 'assistant', at: number }[]
   lastLookAt: number
+  /** When the owner turned live mode on. The first look comes right after it. */
+  turnedOnAt: number
   /** The message of the character that she already got a check-in notice for. */
   checkedInFor?: string
 }
@@ -44,9 +46,11 @@ export interface LiveModeState {
  * when the answer takes long, and after that she only looks again when the owner was away for a while.
  *
  * @example
- * nextLiveModeStep({ now: 100_000, messages: [], lastLookAt: 0 }) // 'look'
+ * nextLiveModeStep({ now: 100_000, messages: [], lastLookAt: 0, turnedOnAt: 0 }) // 'look'
  */
 export function nextLiveModeStep(state: LiveModeState): LiveModeStep {
+  if (state.lastLookAt < state.turnedOnAt)
+    return 'first-look'
   const last = state.messages.at(-1)
   const quietFor = last ? state.now - last.at : Number.POSITIVE_INFINITY
   if (quietFor < LIVE_MODE_PACE.quietBeforeLook || state.now - state.lastLookAt < LIVE_MODE_PACE.lookEvery)
@@ -119,7 +123,9 @@ export function withoutImages(message: ChatHistoryItem): ChatHistoryItem {
  */
 export function setupLiveModeBridge(context: RendererContext) {
   const live = useLiveModeStore()
-  const lookAtScreen = defineInvoke(context, electronLookAtScreen)
+  const latestFrame = defineInvoke(context, electronLiveModeLatestFrame)
+  const setActive = defineInvoke(context, electronLiveModeSetActive)
+  let active = false
 
   let running = false
   let lastLookAt = 0
@@ -139,6 +145,19 @@ export function setupLiveModeBridge(context: RendererContext) {
       await sessions.replaceSessionHistory(sessionId, messages.with(index, withoutImages(messages[index])))
   }
 
+  /** Keeps the screenshot of the owner's newest live message only. */
+  async function dropOldScreenshots(sessionId: string) {
+    const ids = live.screenshotMessageIds
+    if (ids.length < 2)
+      return
+    const sessions = useChatSessionStore()
+    const old = new Set(ids.slice(0, -1))
+    const messages = sessions.sessionMessages[sessionId] ?? []
+    if (messages.some(message => message.id && old.has(message.id)))
+      await sessions.replaceSessionHistory(sessionId, messages.map(message => message.id && old.has(message.id) ? withoutImages(message) : message))
+    live.screenshotMessageIds = ids.slice(-1)
+  }
+
   async function beat() {
     const chat = useChatStore()
     const sessions = useChatSessionStore()
@@ -146,13 +165,17 @@ export function setupLiveModeBridge(context: RendererContext) {
     if (!sessionId || chat.sending || chat.activeTurns.some(turn => turn.sessionId === sessionId))
       return
 
+    await dropOldScreenshots(sessionId)
+
     const now = Date.now()
     const messages = conversationTimeline(sessions.sessionMessages[sessionId] ?? [])
-    const step = nextLiveModeStep({ now, messages, lastLookAt, checkedInFor })
+    const step = nextLiveModeStep({ now, messages, lastLookAt, turnedOnAt: live.enabledAt, checkedInFor })
     if (step === 'wait')
       return
 
-    const shot = await lookAtScreen()
+    const shot = await latestFrame()
+    if (!shot)
+      return
     const bytes = Uint8Array.from(atob(shot.data), char => char.charCodeAt(0))
     const screen = await fingerprint(bytes, shot.mimeType)
     if (step === 'look' && !screenChanged(lastScreen, screen))
@@ -167,8 +190,11 @@ export function setupLiveModeBridge(context: RendererContext) {
       checkedInFor = last?.id
       text = `Live mode: the owner has not answered your last message for ${quiet}. The image is their screen right now.`
     }
+    else if (step === 'first-look') {
+      text = 'Live mode: the owner just turned on live mode. From now on you see their screen while they do their thing, and you can talk with them about it. The image is their screen right now.'
+    }
     else {
-      text = `Live mode: the owner turned on live mode, so you can watch their screen and talk with them while they do their thing. The image is their screen right now.${quiet ? ` The chat has been quiet for ${quiet}.` : ''}`
+      text = `Live mode: you are watching the owner's screen. The image is their screen right now.${quiet ? ` The chat has been quiet for ${quiet}.` : ''}`
     }
 
     const noticeId = nanoid()
@@ -185,6 +211,10 @@ export function setupLiveModeBridge(context: RendererContext) {
     // Only the main window gets the beat. A switch left on from an earlier app run turns off, so watching always
     // starts with a fresh choice of the owner.
     live.forgetEarlierRun(performance.timeOrigin)
+    if (live.enabled !== active) {
+      active = live.enabled
+      setActive({ active }).catch(error => console.warn('[live-mode] capture switch failed', errorMessageFrom(error)))
+    }
     if (!live.enabled || running)
       return
     running = true

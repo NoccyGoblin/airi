@@ -11,9 +11,18 @@ import { computed } from 'vue'
 export const useLiveModeStore = defineStore('fairy-live-mode', () => {
   const enabledAt = useLocalStorage('fairy/live-mode/enabled-at', 0)
   const enabled = computed(() => enabledAt.value > 0)
+  /**
+   * The owner's messages that carry a live screenshot. The main window removes the screenshot from all but the
+   * newest, so old screens do not ride along with every request.
+   */
+  const screenshotMessageIds = useLocalStorage<string[]>('fairy/live-mode/screenshot-messages', [])
 
   function toggle() {
     enabledAt.value = enabled.value ? 0 : Date.now()
+  }
+
+  function addScreenshotMessage(messageId: string) {
+    screenshotMessageIds.value = [...screenshotMessageIds.value, messageId]
   }
 
   /** Turns off a switch that was turned on before `startedAt`. */
@@ -22,5 +31,5 @@ export const useLiveModeStore = defineStore('fairy-live-mode', () => {
       enabledAt.value = 0
   }
 
-  return { enabled, toggle, forgetEarlierRun }
+  return { enabled, enabledAt, screenshotMessageIds, toggle, addScreenshotMessage, forgetEarlierRun }
 })

@@ -41,7 +41,7 @@ import { createMcpServersService } from '../../../services/airi/mcp-servers'
 import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
-import { createLiveModeTicker } from '../../../services/fairy/live-mode'
+import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
 
@@ -88,7 +88,7 @@ export async function setupMainWindowElectronInvokes(params: {
   // FAIRY: the main window answers messages from the phone page.
   createPhoneService({ context })
   // FAIRY: only the main window runs live mode.
-  onWindowClosed(params.window, createLiveModeTicker({ context }))
+  onWindowClosed(params.window, createLiveModeService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

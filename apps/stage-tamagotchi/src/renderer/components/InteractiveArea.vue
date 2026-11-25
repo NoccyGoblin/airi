@@ -32,7 +32,7 @@ import JournalToolCallBlock from './chat-tool-renderers/journal-tool-call-block.
 import ChatViewportLayout from './chat-viewport-layout.vue'
 import ContextInspector from './context-inspector.vue'
 
-import { electronAuthStartLogin, electronLookAtScreen, electronOpenSettings } from '../../shared/eventa'
+import { electronAuthStartLogin, electronLiveModeLatestFrame, electronLookAtScreen, electronOpenSettings } from '../../shared/eventa'
 import { COMPUTER_USE_READ_IMAGE_TOOL_NAME, COMPUTER_USE_TOOL_NAME } from '../../shared/eventa/computer-use'
 import { sessionApprovalGrant } from '../../shared/eventa/terminal-approval'
 import { useHearingInputChannel } from '../composables/use-hearing-input-channel'
@@ -209,20 +209,47 @@ async function changeApprovalGrant(lane: 'terminal' | 'computer_use', mode: Appr
   }
 }
 
+const lookAtScreen = useElectronEventaInvoke(electronLookAtScreen)
+const liveFrame = useElectronEventaInvoke(electronLiveModeLatestFrame)
+const liveMode = useLiveModeStore()
+
 const composer = useChatComposer<ChatImageAttachment>({
   activeSessionId,
-  send: submission => chatStore.send({
-    sessionId: submission.sessionId,
-    text: submission.text,
-    replyToMessageId: submission.replyToMessageId,
-    attachments: submission.attachments.map(attachment => ({
-      type: attachment.type,
-      data: attachment.data,
-      mimeType: attachment.mimeType,
-    })),
-    tools: artistryToolReferences,
-  }),
+  send: async (submission) => {
+    // FAIRY: in live mode, each message carries the screen as it is now, so the character sees what the owner means.
+    const screen = liveMode.enabled ? await liveScreenshot() : undefined
+    const messageId = screen ? nanoid() : undefined
+    if (messageId)
+      liveMode.addScreenshotMessage(messageId)
+    return chatStore.send({
+      messageId,
+      sessionId: submission.sessionId,
+      text: submission.text,
+      replyToMessageId: submission.replyToMessageId,
+      attachments: [
+        ...submission.attachments.map(attachment => ({
+          type: attachment.type,
+          data: attachment.data,
+          mimeType: attachment.mimeType,
+        })),
+        ...(screen ? [screen] : []),
+      ],
+      tools: artistryToolReferences,
+    })
+  },
 })
+
+/** The newest live capture, which is at most a second old. Before the first capture, a new screenshot. */
+async function liveScreenshot() {
+  try {
+    const shot = await liveFrame() ?? await lookAtScreen()
+    return { type: 'image' as const, data: shot.data, mimeType: shot.mimeType }
+  }
+  catch (error) {
+    console.warn('[live-mode] screenshot failed', errorMessageFrom(error))
+    return undefined
+  }
+}
 const {
   attachments,
   clearReplyForMessage,
@@ -299,9 +326,7 @@ function handleManualAttach() {
 }
 
 // "Look at my screen": one screenshot, only on click. It goes into the composer like a pasted image, so the user sees it
-// and can remove it before sending. Nothing is captured on a timer.
-const lookAtScreen = useElectronEventaInvoke(electronLookAtScreen)
-const liveMode = useLiveModeStore()
+// and can remove it before sending. Only live mode, which the owner turns on, captures more.
 const lookingAtScreen = shallowRef(false)
 async function handleLookAtScreen() {
   if (lookingAtScreen.value)

@@ -7,27 +7,33 @@ const now = 100 * minute
 
 describe('nextLiveModeStep', () => {
   it('looks when the chat is quiet and the owner spoke last', () => {
-    expect(nextLiveModeStep({ now, messages: [{ id: 'u1', role: 'user', at: now - 2 * minute }], lastLookAt: 0 })).toBe('look')
-    expect(nextLiveModeStep({ now, messages: [], lastLookAt: 0 })).toBe('look')
+    expect(nextLiveModeStep({ now, messages: [{ id: 'u1', role: 'user', at: now - 2 * minute }], lastLookAt: 0, turnedOnAt: 0 })).toBe('look')
+    expect(nextLiveModeStep({ now, messages: [], lastLookAt: 0, turnedOnAt: 0 })).toBe('look')
   })
 
   it('waits while the chat is active or a look was recent', () => {
-    expect(nextLiveModeStep({ now, messages: [{ id: 'u1', role: 'user', at: now - 10_000 }], lastLookAt: 0 })).toBe('wait')
-    expect(nextLiveModeStep({ now, messages: [], lastLookAt: now - 10_000 })).toBe('wait')
+    expect(nextLiveModeStep({ now, messages: [{ id: 'u1', role: 'user', at: now - 10_000 }], lastLookAt: 0, turnedOnAt: 0 })).toBe('wait')
+    expect(nextLiveModeStep({ now, messages: [], lastLookAt: now - 10_000, turnedOnAt: 0 })).toBe('wait')
   })
 
   it('waits for an answer after she talked, then checks in once', () => {
     const her = { id: 'a1', role: 'assistant' as const, at: now - minute }
-    expect(nextLiveModeStep({ now, messages: [her], lastLookAt: 0 })).toBe('wait')
+    expect(nextLiveModeStep({ now, messages: [her], lastLookAt: 0, turnedOnAt: 0 })).toBe('wait')
 
     const old = { ...her, at: now - LIVE_MODE_PACE.noAnswer }
-    expect(nextLiveModeStep({ now, messages: [old], lastLookAt: 0 })).toBe('check-in')
-    expect(nextLiveModeStep({ now, messages: [old], lastLookAt: 0, checkedInFor: 'a1' })).toBe('wait')
+    expect(nextLiveModeStep({ now, messages: [old], lastLookAt: 0, turnedOnAt: 0 })).toBe('check-in')
+    expect(nextLiveModeStep({ now, messages: [old], lastLookAt: 0, turnedOnAt: 0, checkedInFor: 'a1' })).toBe('wait')
+  })
+
+  it('looks right away when the owner turns live mode on, even mid-chat', () => {
+    const recent = [{ id: 'u1', role: 'user' as const, at: now - 5_000 }]
+    expect(nextLiveModeStep({ now, messages: recent, lastLookAt: 0, turnedOnAt: now - 1_000 })).toBe('first-look')
+    expect(nextLiveModeStep({ now, messages: recent, lastLookAt: now - 500, turnedOnAt: now - 1_000 })).toBe('wait')
   })
 
   it('looks again after the owner was away for a long time', () => {
     const her = { id: 'a1', role: 'assistant' as const, at: now - LIVE_MODE_PACE.away }
-    expect(nextLiveModeStep({ now, messages: [her], lastLookAt: 0, checkedInFor: 'a1' })).toBe('look')
+    expect(nextLiveModeStep({ now, messages: [her], lastLookAt: 0, turnedOnAt: 0, checkedInFor: 'a1' })).toBe('look')
   })
 })
 

@@ -15,6 +15,7 @@ import { createI18nService } from '../../services/airi/i18n'
 import { createAppService, createAppVersionService, createPowerMonitorService, createScreenService, createSystemPreferencesService, createWindowService } from '../../services/electron'
 import { WindowBackdropService } from '../../services/electron/window-backdrop'
 import { createLeagueService } from '../../services/fairy/league'
+import { createLiveModeFrameService } from '../../services/fairy/live-mode'
 import { createLookAtScreenService } from '../../services/fairy/look-at-screen'
 import { createMemoryFilesService } from '../../services/fairy/memory-files'
 import { createPhoneInfoService } from '../../services/fairy/phone'
@@ -213,6 +214,7 @@ export async function setupBaseWindowElectronInvokes(params: {
   createLeagueService({ context: params.context })
   createWebKnowledgeService({ context: params.context })
   createPhoneInfoService({ context: params.context })
+  createLiveModeFrameService({ context: params.context })
   createMemoryFilesService({ context: params.context, onClosed: stop => params.window.once('closed', stop) })
 
   await createI18nService({ context: params.context, window: params.window, i18n: params.i18n })

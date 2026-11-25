@@ -279,6 +279,14 @@ export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string,
 
 /** FAIRY: a beat every few seconds to the main window. While live mode is on, the window decides there whether to look. */
 export const electronLiveModeTick = defineEventa<void>('eventa:event:electron:fairy:live-mode:tick')
+/** FAIRY: starts or stops the capture of the screen every second. Only the main window calls it. */
+export const electronLiveModeSetActive = defineInvokeEventa<void, { active: boolean }>('eventa:invoke:electron:fairy:live-mode:set-active')
+/** A live capture of the screen. `at` is the capture time in epoch milliseconds. */
+export interface LiveModeFrame extends LookAtScreenResult {
+  at: number
+}
+/** FAIRY: the newest live capture, or nothing while live mode is off. It stays in memory only. */
+export const electronLiveModeLatestFrame = defineInvokeEventa<LiveModeFrame | undefined>('eventa:invoke:electron:fairy:live-mode:latest-frame')
 
 /** FAIRY: a web search through Tavily, with a short answer and sources. Needs FAIRY_TAVILY_API_KEY. */
 export const electronWebSearch = defineInvokeEventa<unknown, WebSearchRequest>('eventa:invoke:electron:fairy:web-search')
