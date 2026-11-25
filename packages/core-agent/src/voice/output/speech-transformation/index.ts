@@ -88,7 +88,21 @@ export function toSpeechText(markdown: string, options?: SpeechTextOptions): str
   // The 4.0.0 and 4.0.1 tarballs have no `dist`, but their `exports` point into it, so the import fails.
   // Source: npm tarballs of @flowershow/remark-wiki-link 4.0.0 and 4.0.1, checked 2026-11-02.
   // Remove the pin when a 4.x release ships `dist`.
-  return String(unified().use(remarkParse).use(remarkCjkFriendly).use(remarkMath).use(remarkWikiLink).use(remarkSpeech, { ...options, preprocessors }).processSync(prepared))
+  return withoutEmoji(String(unified().use(remarkParse).use(remarkCjkFriendly).use(remarkMath).use(remarkWikiLink).use(remarkSpeech, { ...options, preprocessors }).processSync(prepared)))
+}
+
+/**
+ * FAIRY: one emoji, with its variation selector, skin tone, and joined parts (👩‍💻, 👍🏽, ❤️), or a flag (🇳🇱).
+ * Digits and `#` are emoji code points too, but not pictographic, so numbers stay.
+ */
+const emoji = /[ \t]*(?:\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier}|‍\p{Extended_Pictographic})*️?|\p{Regional_Indicator}{2})/gu
+
+/**
+ * FAIRY: the chat shows emoji, but a voice would read them out ("smiling face with hearts"), so speech drops them,
+ * each with the space before it. A line that started with an emoji keeps no leading space. Other text is untouched.
+ */
+export function withoutEmoji(text: string): string {
+  return text.replace(emoji, '').replace(/^[ \t]+/gm, '')
 }
 
 function compile(tree: Root, source: string, options: SpeechTextOptions | undefined): string {

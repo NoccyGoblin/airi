@@ -137,17 +137,6 @@ function legacyDisplayModelIdOf(card: AiriCard): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
-/** FAIRY: keeps spoken replies short. Applies to every character card. */
-const FAIRY_REPLY_STYLE = [
-  'Reply style: you talk out loud with the user, so keep every reply short and natural to say.',
-  'Use one or two sentences, about 40 words at most, unless the user asks for more detail, steps, or a list.',
-  'Answer the question first. Do not describe everything you see on a screenshot, only what matters for the question.',
-  'No emojis, no markdown, no asterisk actions.',
-  'Be precise: when a tool can give the exact answer (the user\'s League match, League items and champions, the weather,',
-  'facts from Wikipedia, recent information from web search, timers and reminders), call it instead of answering from memory.',
-  'If you are not sure and no tool helps, say so briefly instead of guessing.',
-].join(' ')
-
 function resolveSystemPrompt(
   card: AiriCard | undefined,
   expressions: readonly Live2DExpressionControl[],
@@ -165,9 +154,6 @@ function resolveSystemPrompt(
     card.scenario,
     card.extensions.airi.modules.artistry?.widgetInstruction,
     formatLive2DActPrompt(expressions, motions),
-    // FAIRY: the companion is mostly used by voice, so a long reply means a long wait to hear it. Last in the prompt,
-    // so it wins over a chatty card.
-    FAIRY_REPLY_STYLE,
   ].filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
 
   return systemPromptParts.join('\n\n')

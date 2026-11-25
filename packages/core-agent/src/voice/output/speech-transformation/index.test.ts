@@ -1,6 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import { toSpeechText } from '.'
+import { toSpeechText, withoutEmoji } from '.'
+
+describe('withoutEmoji (FAIRY)', () => {
+  it('drops emoji so the voice does not read them, and keeps the words', () => {
+    expect(toSpeechText('You hit Diamond?! 🎉🎉 So proud of you 💖')).toBe('You hit Diamond?! So proud of you')
+    expect(toSpeechText('Good game 👍🏽, rest a bit ❤️.')).toBe('Good game, rest a bit.')
+    expect(toSpeechText('Coding again? 👩‍💻 Go Netherlands 🇳🇱!')).toBe('Coding again? Go Netherlands!')
+  })
+
+  it('drops an emoji at the start of a line without leaving a space', () => {
+    expect(withoutEmoji('😊 Hi!\n✨ Ready?')).toBe('Hi!\nReady?')
+  })
+
+  it('keeps numbers, hashtags, and text emoticons', () => {
+    expect(withoutEmoji('Patch 26.22 #1 pick :)')).toBe('Patch 26.22 #1 pick :)')
+  })
+
+  it('keeps the speech marker that the stream splits on', () => {
+    expect(toSpeechText('Hi 😊 there', { marker: '' })).toBe('Hi there')
+  })
+})
 
 describe('toSpeechText', () => {
   it('removes markup that has no sound', () => {
