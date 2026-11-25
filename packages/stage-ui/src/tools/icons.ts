@@ -21,6 +21,8 @@ export const TOOL_ICONS = {
   weather: 'i-tabler:cloud-rain',
   /** FAIRY: League of Legends live game and Data Dragon lookups. */
   game: 'i-tabler:device-gamepad-2',
+  /** FAIRY: timers and reminders. */
+  timer: 'i-tabler:alarm',
   widgets: 'i-tabler:layout-grid',
   imageJournal: 'i-tabler:palette',
   computerUse: 'i-tabler:device-desktop',

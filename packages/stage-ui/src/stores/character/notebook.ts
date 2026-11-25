@@ -30,6 +30,14 @@ export interface ScheduledTask {
   metadata?: Record<string, unknown>
 }
 
+/**
+ * FAIRY: a timer or reminder that the user asked for. It fires once, at its exact time, and is then done.
+ * Set `metadata.exactTime: true` when scheduling one.
+ */
+export function isExactTask(task: Pick<ScheduledTask, 'metadata'>): boolean {
+  return task.metadata?.exactTime === true
+}
+
 export const useCharacterNotebookStore = defineStore('character-notebook', () => {
   const entries = ref<NotebookEntry[]>([])
   const tasks = ref<ScheduledTask[]>([])
@@ -125,7 +133,8 @@ export const useCharacterNotebookStore = defineStore('character-notebook', () =>
       if (task.status === 'done' || task.status === 'dropped')
         return false
       const dueAt = task.dueAt ?? now
-      if (dueAt > now + windowMs)
+      // FAIRY: user timers and reminders fire at their time, not up to `windowMs` early.
+      if (dueAt > now + (isExactTask(task) ? 0 : windowMs))
         return false
       if (typeof task.nextNotifyAt === 'number' && task.nextNotifyAt > now)
         return false

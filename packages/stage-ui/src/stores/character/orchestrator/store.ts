@@ -11,6 +11,7 @@ import { useAiriRuntimePrompt } from '../../../composables/use-airi-runtime-prom
 import { useLLM } from '../../ai/chat-llm/llm'
 import { useModsServerChannelStore } from '../../mods/api/channel-server'
 import { useConsciousnessStore } from '../../modules/consciousness'
+import { isExactTask } from '../notebook'
 
 export { sparkNotifyCommandSchema } from '@proj-airi/core-agent/agents/spark-notify'
 
@@ -198,7 +199,9 @@ export const useCharacterOrchestratorStore = defineStore('character-orchestrator
           kind: 'reminder',
           urgency: task.priority === 'critical' ? 'immediate' : 'soon',
           headline: `Task reminder: ${task.title}`,
-          note: task.details,
+          note: isExactTask(task)
+            ? `The user asked you to remind them now${task.details ? ` (${task.details})` : ''}. Tell them out loud, short and clear, in character.`
+            : task.details,
           destinations: ['character'],
           payload: {
             taskId: task.id,
@@ -209,7 +212,11 @@ export const useCharacterOrchestratorStore = defineStore('character-orchestrator
       }
 
       enqueueSparkNotify(event, { reason: 'task:due' })
-      notebookStore.markTaskNotified(task.id, now + attentionConfig.value.requeueDelayMs)
+      // FAIRY: a user's timer rings once. Other tasks are requeued until someone marks them done.
+      if (isExactTask(task))
+        notebookStore.markTaskDone(task.id)
+      else
+        notebookStore.markTaskNotified(task.id, now + attentionConfig.value.requeueDelayMs)
     }
   }
 

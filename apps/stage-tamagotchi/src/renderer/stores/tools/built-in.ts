@@ -7,6 +7,7 @@ import { defineStore } from 'pinia'
 
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
+import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
 import { weatherTools } from './builtin/weather'
 import { widgetsTools } from './builtin/widgets'
 
@@ -16,6 +17,10 @@ export const widgetToolReferences = [
   // FAIRY: League facts from Riot's data, offered with every chat and voice message.
   { name: LEAGUE_LIVE_GAME_TOOL_NAME },
   { name: LEAGUE_LOOKUP_TOOL_NAME },
+  // FAIRY: local timers and reminders that she says out loud.
+  { name: SET_REMINDER_TOOL_NAME },
+  { name: LIST_REMINDERS_TOOL_NAME },
+  { name: CANCEL_REMINDER_TOOL_NAME },
 ] satisfies ChatToolReference[]
 
 export const artistryToolReferences = [
@@ -40,6 +45,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       widgetsTools().then(tools => ({ tools, icon: TOOL_ICONS.widgets })),
       weatherTools().then(tools => ({ tools, icon: TOOL_ICONS.weather })),
       leagueTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
+      reminderTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())
