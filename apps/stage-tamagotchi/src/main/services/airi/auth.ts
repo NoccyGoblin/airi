@@ -32,7 +32,9 @@ type MainContext = ReturnType<typeof createContext>['context']
 // OIDC configuration for the Electron client.
 const OIDC_CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID || 'airi-stage-electron'
 const OIDC_SCOPES = 'openid profile email offline_access'
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://api.airi.build'
+// PRIVACY: no AIRI cloud account in this fork. Same closed local port as `SERVER_URL` in stage-ui `libs/server.ts`.
+const SERVER_URL = 'http://127.0.0.1:9'
+const ACCOUNTS_ENABLED = false as boolean
 const OIDC_AUTHORIZE_PATH = '/api/auth/oauth2/authorize'
 const OIDC_TOKEN_PATH = '/api/auth/oauth2/token'
 
@@ -108,7 +110,14 @@ export function createAuthService(params: {
       return
     }
 
-    cancelLogin()
+    // PRIVACY: sign-in is turned off in this fork. Refuse at once, before a browser opens or a local callback server
+    // starts.
+    if (!ACCOUNTS_ENABLED) {
+      cancelLogin()
+      publishAuthStatus({ attemptId: generateState(), state: 'error', error: 'Accounts are turned off in this private build.' })
+      return
+    }
+
     const attempt: LoginAttempt = { attemptId: generateState(), window: params.window, controller: new AbortController() }
     activeAttempt = attempt
     publishAuthStatus({ attemptId: attempt.attemptId, state: 'waiting' })

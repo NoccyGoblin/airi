@@ -14,6 +14,7 @@ import { computed, onScopeDispose, shallowRef, watch } from 'vue'
 
 import { isRenderableInboxMessage } from '../components/scenarios/notifications/inbox-presentation'
 import { authedFetch } from '../libs/auth-fetch'
+import { CLOUD_URL } from '../libs/server'
 import { useAuthStore } from './auth'
 
 /** Each panel page asks for this many messages. Cloud uses 20 when the limit is zero. */
@@ -47,7 +48,7 @@ const messageSchema = object({
  */
 export const useInboxStore = defineStore('inbox', () => {
   const auth = useAuthStore()
-  const baseUrl = import.meta.env.VITE_CLOUD_URL || 'https://cloud.airi.build'
+  const baseUrl = CLOUD_URL
 
   const unread = shallowRef(0)
   const messages = shallowRef<InboxMessage[]>([])
