@@ -33,7 +33,13 @@ export type LiveModeStep = 'wait' | 'first-look' | 'look' | 'check-in'
 export interface LiveModeState {
   now: number
   /** Real messages of the conversation in order. Notices are left out. */
-  messages: readonly { id: string, role: 'user' | 'assistant', at: number }[]
+  messages: readonly {
+    id: string
+    role: 'user' | 'assistant'
+    at: number
+    /** The character said it by herself, not as an answer to the owner. */
+    proactive?: boolean
+  }[]
   lastLookAt: number
   /** When the owner turned live mode on. The first look comes right after it. */
   turnedOnAt: number
@@ -42,8 +48,9 @@ export interface LiveModeState {
 }
 
 /**
- * Decides the next live mode step. The character talks, then waits for an answer. She can check on the owner once
- * when the answer takes long, and after that she only looks again when the owner was away for a while.
+ * Decides the next live mode step. When the character starts talking by herself, she waits for an answer. She can
+ * check on the owner once when the answer takes long, and after that she only looks again when the owner was away for
+ * a while. When she only answered the owner, the talk is over, and she can look again after a quiet moment.
  *
  * @example
  * nextLiveModeStep({ now: 100_000, messages: [], lastLookAt: 0, turnedOnAt: 0 }) // 'look'
@@ -55,11 +62,14 @@ export function nextLiveModeStep(state: LiveModeState): LiveModeStep {
   const quietFor = last ? state.now - last.at : Number.POSITIVE_INFINITY
   if (quietFor < LIVE_MODE_PACE.quietBeforeLook || state.now - state.lastLookAt < LIVE_MODE_PACE.lookEvery)
     return 'wait'
-  if (!last || last.role === 'user')
+  if (!last || last.role === 'user' || !last.proactive)
     return 'look'
 
-  // The last message is hers, so she waits for an answer.
-  if (state.checkedInFor !== last.id)
+  // She started talking by herself, so she waits for an answer. A second unanswered message of hers is her check-in.
+  let unanswered = 0
+  for (let index = state.messages.length - 1; index >= 0 && state.messages[index].role === 'assistant' && state.messages[index].proactive; index--)
+    unanswered++
+  if (unanswered < 2 && state.checkedInFor !== last.id)
     return quietFor >= LIVE_MODE_PACE.noAnswer ? 'check-in' : 'wait'
   return quietFor >= LIVE_MODE_PACE.away ? 'look' : 'wait'
 }
@@ -77,7 +87,12 @@ function isNotice(message: ChatHistoryItem) {
 export function conversationTimeline(messages: readonly ChatHistoryItem[]): LiveModeState['messages'] {
   return messages
     .filter(message => (message.role === 'user' || message.role === 'assistant') && !isNotice(message))
-    .map(message => ({ id: message.id ?? '', role: message.role as 'user' | 'assistant', at: messageTime(message) }))
+    .map(message => ({
+      id: message.id ?? '',
+      role: message.role as 'user' | 'assistant',
+      at: messageTime(message),
+      proactive: message.role === 'assistant' && Boolean(message.proactive),
+    }))
 }
 
 /**
