@@ -59,7 +59,7 @@ import { deliverTerminalNotice } from './services/airi/mcp-servers/terminal-noti
 import { setupExtensionHost } from './services/airi/plugins'
 import { createBuiltInExtensionKits } from './services/airi/plugins/kits'
 import { setupArtistryBridge } from './services/airi/widgets/artistry-bridge'
-import { isExternallyUpdatedInstall, setupAutoUpdater } from './services/electron/auto-updater'
+import { setupAutoUpdater } from './services/electron/auto-updater'
 import { setupSherpawModelAssetsProtocol } from './services/electron/bundled-sherpaw-assets'
 import { setupGlobalShortcutService } from './services/electron/global-shortcut'
 import { setupPermissionHandlers } from './services/electron/media-permissions'
@@ -290,7 +290,8 @@ app.whenReady().then(async () => {
   const autoUpdater = injeca.provide('services:auto-updater', {
     dependsOn: { appConfig },
     build: ({ dependsOn }) => setupAutoUpdater({
-      enabled: !isExternallyUpdatedInstall(),
+      // PRIVACY: this fork never checks for, downloads or installs AIRI updates, and never fetches release notes.
+      enabled: false,
       getStoredUpdateLane: () => dependsOn.appConfig.get()?.updateChannel,
       setStoredUpdateLane: (lane) => {
         const currentConfig = dependsOn.appConfig.get()

@@ -33,15 +33,6 @@ function becomeOwnResponsibleProcess() {
   }
 }
 
-/**
- * Flatpak and Nix installs use the build of the deb and rpm packages, so only the runtime can tell them. Their package
- * managers update the app, so the updater stays off. See `isExternallyUpdatedInstall` in
- * `src/main/services/electron/auto-updater.ts`.
- */
-function isUpdatedByPackageManager() {
-  return !!process.env.FLATPAK_ID || process.env.AIRI_DISTRIBUTION === 'nix'
-}
-
 // Re-exec before the launcher loads a bundle, so that no update work runs twice.
 becomeOwnResponsibleProcess()
 
@@ -57,6 +48,7 @@ if (appUserDataPath) {
 // eslint-disable-next-line antfu/no-top-level-await
 await startLauncher({
   ...config,
-  disabled: config.disabled || isUpdatedByPackageManager(),
+  // PRIVACY: the ergosphere-it updater is always off in this fork, so the launcher never checks the AIRI release store.
+  disabled: true,
   launcherUrl: import.meta.url,
 })
