@@ -55,8 +55,18 @@ export function registerProviders(definitions: readonly ProviderDefinition[]): v
   }
 }
 
+/**
+ * PRIVACY: the AIRI Official Provider (chat, speech, transcription, vision) is AIRI's cloud AI, which needs an account.
+ * This fork only uses local providers, so the official ones are never listed and cannot be picked.
+ */
+export function isOfficialProviderId(id: string): boolean {
+  return id.startsWith('official-provider') || id.startsWith('vision-official-provider')
+}
+
 export function listProviders(): ProviderDefinition[] {
-  const providerDefs = Array.from(providerRegistry.values()).map(def => ({ order: 99999, ...def }))
+  const providerDefs = Array.from(providerRegistry.values())
+    .filter(def => !isOfficialProviderId(def.id))
+    .map(def => ({ order: 99999, ...def }))
   const sorted = orderBy(providerDefs, [p => p.order, 'name'], ['asc', 'asc'])
   return sorted
 }
