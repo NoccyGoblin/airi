@@ -69,6 +69,24 @@ export const memoryRepo = {
       return entry
     })
   },
+  /**
+   * FAIRY: the owner edits an entry, or adds one, in Settings. An edited entry keeps its card. A new entry is general,
+   * so every character knows it. Resolves to the stored entry.
+   */
+  async ownerSave(input: MemoryWrite, updatedAt: number) {
+    return write(async () => {
+      const stored = input.id ? await storedEntry(input.id) : undefined
+      const entry: MemoryEntry = {
+        id: stored?.id ?? uuidv7(),
+        description: input.description,
+        body: input.body,
+        ...(stored?.persona ? { persona: stored.persona } : {}),
+        updatedAt,
+      }
+      await records.setItemRaw<MemoryEntry>(entry.id, entry)
+      return entry
+    })
+  },
   /** Makes a card's stored entry general. Resolves to whether it changed. */
   async makeGeneral(id: string, updatedAt: number) {
     return write(async () => {

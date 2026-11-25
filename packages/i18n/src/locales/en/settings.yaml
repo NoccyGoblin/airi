@@ -1251,11 +1251,20 @@ pages:
       enable-description: The character remembers what you talk about. When this is off, it remembers nothing.
       memories:
         title: Memories
-        description: Each character keeps its own secrets, and the others cannot see them. After you share a secret, every character knows it, and you cannot take it back. You can delete any secret, but you cannot rewrite one.
+        description: Each character keeps its own memories, and the others cannot see them. Shared memories are known by every character. You can add, edit, and delete any memory here.
         empty: No memories yet.
         forget: 'Forget {name}'
+        edit: 'Edit {name}'
+        add: Add a memory
+        add-hint: Something every character should know about you, for example your main champion or how you like answers.
+        field-description: Short title
+        field-description-placeholder: For example "Main champion"
+        field-body: The fact
+        field-body-placeholder: For example "Plays Ahri mid, mostly ranked in the evening."
+        save: Save
+        cancel: Cancel
         make_general: 'Share {name} with every character'
-        general: Shared secrets
+        general: Shared with every character
         entry:
           title: Memories
           description: Each character's secrets, and the secrets that they share.

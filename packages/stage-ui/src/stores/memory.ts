@@ -104,6 +104,19 @@ export const useMemoryStore = defineStore('memory', () => {
     return entry
   }
 
+  /**
+   * FAIRY: the owner edits an entry or adds a general one in Settings. Unlike a run, the owner may change any entry.
+   * Resolves to the stored entry, or undefined for an empty body.
+   */
+  async function ownerSave(input: MemoryWrite) {
+    const body = input.body.trim()
+    if (!body)
+      return undefined
+    const entry = await memoryRepo.ownerSave({ id: input.id, description: input.description.trim(), body }, Date.now())
+    await publish([entry.id])
+    return entry
+  }
+
   /** Makes a card's memory general, so every card reads it. */
   async function makeGeneral(entry: Pick<MemoryEntry, 'id'>) {
     if (await memoryRepo.makeGeneral(entry.id, Date.now()))
@@ -150,6 +163,7 @@ export const useMemoryStore = defineStore('memory', () => {
     indexFor,
     read,
     write,
+    ownerSave,
     makeGeneral,
     forget,
     remove,
