@@ -162,3 +162,6 @@ apps/*/src/renderer/public/sherpaw/
 
 # Vieval caches and report artifacts
 .vieval
+
+# FAIRY: personal data (memories) stays on this PC and never goes to GitHub
+/fairy-data/

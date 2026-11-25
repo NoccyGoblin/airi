@@ -227,6 +227,28 @@ export interface WebSearchRequest {
   /** Prefer news from the last 30 days. */
   recent?: boolean
 }
+/** FAIRY: one long-term memory file in <project>\fairy-data\memory. The id is the file name without `.md`. */
+export interface MemoryFileEntry {
+  id: string
+  description: string
+  body: string
+  updatedAt: number
+}
+export interface MemoryFileSave {
+  /** An existing file to rewrite. Without it, a new file is named after the description. */
+  id?: string
+  description: string
+  body: string
+}
+export const electronMemoryFilesList = defineInvokeEventa<MemoryFileEntry[]>('eventa:invoke:electron:fairy:memory-files:list')
+export const electronMemoryFilesSave = defineInvokeEventa<MemoryFileEntry, MemoryFileSave>('eventa:invoke:electron:fairy:memory-files:save')
+export const electronMemoryFilesRemove = defineInvokeEventa<string[], string[]>('eventa:invoke:electron:fairy:memory-files:remove')
+export const electronMemoryFilesClear = defineInvokeEventa('eventa:invoke:electron:fairy:memory-files:clear')
+export const electronMemoryFilesReplace = defineInvokeEventa<void, MemoryFileSave[]>('eventa:invoke:electron:fairy:memory-files:replace')
+export const electronMemoryFilesOpenFolder = defineInvokeEventa('eventa:invoke:electron:fairy:memory-files:open-folder')
+/** A memory file changed, for example in Notepad. */
+export const electronMemoryFilesChanged = defineEventa('eventa:event:electron:fairy:memory-files:changed')
+
 /** FAIRY: a web search through Tavily, with a short answer and sources. Needs FAIRY_TAVILY_API_KEY. */
 export const electronWebSearch = defineInvokeEventa<unknown, WebSearchRequest>('eventa:invoke:electron:fairy:web-search')
 

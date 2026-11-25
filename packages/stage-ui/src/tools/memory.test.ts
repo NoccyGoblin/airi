@@ -46,7 +46,10 @@ describe('memory tools', () => {
   it('asks for few, plain writes and shows the index', () => {
     expect(composeMemoryPrompt('General:\n- nickname-id: d')).toContain('Memory index:\nGeneral:\n- nickname-id: d')
     expect(composeMemoryPrompt('')).toContain('An index line that already states the fact needs no read.')
-    expect(composeMemoryPrompt('')).toContain('Most turns save nothing.')
+    // FAIRY: remembers everything unless told not to, one entry per topic, never secrets.
+    expect(composeMemoryPrompt('')).toContain('Remember everything the user tells you')
+    expect(composeMemoryPrompt('')).toContain('rewrite it with its id instead of adding a new one')
+    expect(composeMemoryPrompt('')).toContain('Never save passwords')
     expect(composeMemoryPrompt('')).toContain('Never save what a recipe already holds')
     expect(composeMemoryPrompt('')).toContain('The memory index is empty.')
   })

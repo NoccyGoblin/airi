@@ -1256,6 +1256,8 @@ pages:
         forget: 'Forget {name}'
         edit: 'Edit {name}'
         add: Add a memory
+        open-folder: Open memory folder
+        files-hint: Each memory is a text file in fairy-data\memory in the project folder. You can edit them in Notepad; changes show up right away. Forgotten memories move to the .forgotten folder.
         add-hint: Something every character should know about you, for example your main champion or how you like answers.
         field-description: Short title
         field-description-placeholder: For example "Main champion"

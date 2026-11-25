@@ -79,6 +79,16 @@ const fieldClass = [
       {{ t(`${KEY}.description`) }}
     </p>
 
+    <!-- FAIRY: memories are files in the project folder. -->
+    <div v-if="memory.openFolder" :class="['flex items-center', 'gap-3']">
+      <p :class="['min-w-0 flex-1', 'text-xs', 'text-neutral-500 dark:text-neutral-400']">
+        {{ t(`${KEY}.files-hint`) }}
+      </p>
+      <Button size="sm" variant="secondary" icon="i-solar:folder-open-linear" @click="memory.openFolder()">
+        {{ t(`${KEY}.open-folder`) }}
+      </Button>
+    </div>
+
     <!-- FAIRY: add a shared memory -->
     <section :class="['flex flex-col', 'gap-2', 'rounded-xl', 'bg-neutral-50 dark:bg-neutral-800/60', 'p-4']">
       <template v-if="editingId === 'new'">

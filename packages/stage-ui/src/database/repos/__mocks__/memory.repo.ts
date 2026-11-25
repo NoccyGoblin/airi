@@ -37,7 +37,20 @@ export const memoryRepo = {
     for (const id of ids)
       entries.delete(id)
   },
+  async ownerSave(input: MemoryWrite, updatedAt: number) {
+    const stored = input.id ? entries.get(input.id) : undefined
+    const entry: MemoryEntry = { id: stored?.id ?? uuidv7(), description: input.description, body: input.body, ...(stored?.persona ? { persona: stored.persona } : {}), updatedAt }
+    entries.set(entry.id, entry)
+    return entry
+  },
   async clear() {
     entries.clear()
   },
 }
+
+// FAIRY: Node tests keep memory in this map, never in files.
+export function setMemoryFileBackend() {}
+export function getMemoryFileBackend() {
+  return undefined
+}
+export async function moveRecordsToFiles() {}

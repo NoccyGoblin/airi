@@ -26,6 +26,7 @@ import { electronWindowBackdropUpdate } from '../shared/eventa'
 import { nestFullscreenSurfaces } from './components/fullscreen/surfaces'
 import { createWindowBackdropHost } from './composables/window-backdrop'
 import { i18n } from './modules/i18n'
+import { useMemoryFiles } from './modules/memory-files'
 import { resolveRendererWindowContext } from './window-context'
 
 import '@unocss/reset/tailwind.css'
@@ -49,6 +50,8 @@ import '@fontsource/maple-mono/index.css'
 import '@fontsource-variable/nunito/index.css'
 
 // PRIVACY: no usage analytics. The PostHog/OpenPanel loader is never configured, so nothing is ever sent.
+// FAIRY: long-term memory in readable files in <project>\fairy-data\memory.
+useMemoryFiles()
 registerAuthorizationHandler(browserAuthorizationHandler)
 
 // The settings search lists only what these modules hold. Each module decides at runtime whether it is on.

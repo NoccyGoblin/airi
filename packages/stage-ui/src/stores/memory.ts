@@ -7,7 +7,7 @@ import { defineStore } from 'pinia'
 import { v7 as uuidv7 } from 'uuid'
 import { computed, ref, watch } from 'vue'
 
-import { memoryRepo } from '../database/repos/memory.repo'
+import { getMemoryFileBackend, memoryRepo, moveRecordsToFiles } from '../database/repos/memory.repo'
 
 const LEGACY_ENTRIES_STORAGE_KEY = 'memory/entries'
 
@@ -49,6 +49,9 @@ export const useMemoryStore = defineStore('memory', () => {
   const { data: changed, post } = useBroadcastChannel<string[], string[]>({ name: 'airi:memory' })
   let pendingLoad = moveLegacyEntries()
     .catch(error => console.warn('[memory] Failed to move the entries from localStorage:', errorMessageFrom(error)))
+    // FAIRY: when memory lives in files, move what IndexedDB still holds into them once.
+    .then(() => getMemoryFileBackend() && navigator.locks.request('airi:memory-move-to-files', () => moveRecordsToFiles()))
+    .catch(error => console.warn('[memory] Failed to move the entries to files:', errorMessageFrom(error)))
 
   /** Reads the entries again, after the reads that started before. */
   function load() {
@@ -154,6 +157,8 @@ export const useMemoryStore = defineStore('memory', () => {
     void load().catch(error => console.warn('[memory] Failed to read the entries:', errorMessageFrom(error)))
   }
   watch(changed, reload)
+  // FAIRY: a memory file edited in a text editor shows up without a restart.
+  getMemoryFileBackend()?.onChange(reload)
   reload()
 
   return {
@@ -169,5 +174,7 @@ export const useMemoryStore = defineStore('memory', () => {
     remove,
     resetState,
     restoreState,
+    /** FAIRY: opens the memory folder, when memory lives in files. */
+    openFolder: getMemoryFileBackend()?.openFolder,
   }
 })

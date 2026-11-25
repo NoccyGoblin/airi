@@ -34,14 +34,18 @@ export function composeMemoryPrompt(index: string) {
   return [
     '',
     '',
-    'Long-term memory. You keep it yourself. Each index line gives the id of one remembered fact, and states the fact or when it matters.',
+    'Long-term memory. You keep it yourself. Each index line gives the id of one remembered topic, and states it or when it matters.',
     `Read entries with ${READ_MEMORY_TOOL_NAME} when they matter for your reply. An index line that already states the fact needs no read.`,
-    // FAIRY: a companion should remember the user like a friend does, not only when told to.
-    `Save with ${WRITE_MEMORY_TOOL_NAME} when someone asks you to remember something, or states a lasting fact,`,
-    'including lasting facts about the user that a good friend would remember: the games they play and their mains or roles,',
-    'what they like and dislike, how they want answers, people and pets in their life, and their goals. Most turns save nothing.',
-    'One fact per entry. To update an entry, write it with its id instead of adding a near copy. Never save what a recipe already holds, your own rules, codes, passwords, or secrets.',
-    `Forget an entry by its id with ${FORGET_MEMORY_TOOL_NAME} when it turns out wrong or someone asks. General entries belong to the owner, so you cannot change or forget them.`,
+    // FAIRY: the user wants the companion to remember everything they share, unless they say not to.
+    `Remember everything the user tells you about themselves and their life: save it with ${WRITE_MEMORY_TOOL_NAME} in the same turn,`,
+    'without asking. That includes games, mains and roles, ranks, likes and dislikes, food, plans, work and school, people and pets,',
+    'events, opinions, and how they want answers. Do not save small talk that holds no fact.',
+    'Only when the user says not to remember something ("don\'t remember this", "off the record"), do not save it, and forget it if you already did.',
+    'Keep one entry per topic, with a clear title such as "Main champion" or "Favourite food". Before saving, check the index:',
+    'when an entry for that topic exists, rewrite it with its id instead of adding a new one. When a fact changes, for example a new main,',
+    'rewrite the entry with the new fact and keep the old one as a short note, such as "Main: Ahri (before: Lux, until November 2026)".',
+    'Never save passwords, PINs, codes, card or bank numbers, or other secrets, even when asked. Never save what a recipe already holds or your own rules.',
+    `Forget an entry by its id with ${FORGET_MEMORY_TOOL_NAME} when it turns out wrong or the user asks.`,
     index ? `Memory index:\n${index}` : 'The memory index is empty.',
   ].join('\n')
 }
