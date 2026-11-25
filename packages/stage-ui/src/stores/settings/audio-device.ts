@@ -50,7 +50,12 @@ export const useSettingsAudioDevice = defineStore('settings-audio-devices', () =
    * Each window computes it from the same persisted settings. A level meter observes the input only while this is
    * true, so a meter alone never opens the microphone.
    */
-  const heldOpen = computed(() => listening.value && continuousAllowed.value && listensContinuously(hearing.inputMode))
+  // NOTICE:
+  // FAIRY: Push to Talk also holds the microphone open, so a hold starts recording at once.
+  // Some wireless headsets need about 5 seconds to open their microphone, so a hold lost its first words and the
+  // recognizer got silence. The hold still decides what AIRI hears. Only the device stays open.
+  // Remove when the audio input can open a device ahead of time without keeping it open.
+  const heldOpen = computed(() => listening.value && continuousAllowed.value && (listensContinuously(hearing.inputMode) || hearing.inputMode === 'push-to-talk'))
 
   /** Holds the current input open. A failure other than release turns the preference off. */
   function hold() {

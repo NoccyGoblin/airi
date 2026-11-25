@@ -148,11 +148,14 @@ export function startLocalVoiceServer() {
           return json({ error: { message: 'Missing audio file' } }, 400)
         if (file.size > MAX_AUDIO_BYTES)
           return json({ error: { message: 'The audio is too long' } }, 413)
-        const samples = readWavMono(new Uint8Array(await file.arrayBuffer()), 16_000)
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        const samples = readWavMono(bytes, 16_000)
+        const level = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / Math.max(1, samples.length))
         const model = String(form.get('model') ?? DEFAULT_WHISPER)
         const asr = await loadWhisper(model)
         const result = await listening.runExclusive(() => asr(samples))
         const text = (Array.isArray(result) ? result.map(part => part.text).join(' ') : result.text).trim()
+        log.log(`heard ${(samples.length / 16_000).toFixed(1)} s at level ${level.toFixed(4)} from ${bytes.length} bytes: "${text}"`)
         return json({ text })
       }
       catch (error) {
