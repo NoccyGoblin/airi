@@ -42,6 +42,7 @@ import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
+import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
 
@@ -87,6 +88,8 @@ export async function setupMainWindowElectronInvokes(params: {
   createAuthService({ context, window: params.window })
   // FAIRY: the main window answers messages from the phone page.
   createPhoneService({ context })
+  // FAIRY: the character's local voice (Kokoro speech and Whisper hearing).
+  void startLocalVoiceServer()
   // FAIRY: only the main window runs live mode.
   onWindowClosed(params.window, createLiveModeService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
