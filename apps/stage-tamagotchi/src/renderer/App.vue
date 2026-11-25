@@ -69,6 +69,7 @@ import {
 import { electronPluginToolsChanged } from '../shared/eventa/plugin/tools'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
+import { setupPhoneChatBridge } from './bridges/phone-chat'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
 import { useDevicePermissions } from './composables/use-device-permissions'
 import { useLanguage } from './composables/use-language'
@@ -309,6 +310,9 @@ function createFullStageRuntime() {
   context.value.on(electronPluginToolsChanged, () => {
     void refreshPluginRuntimeTools()
   })
+
+  // FAIRY: only the main window receives phone messages, so only it answers them.
+  setupPhoneChatBridge(context.value)
 
   return {
     async initialize() {

@@ -249,6 +249,26 @@ export const electronMemoryFilesOpenFolder = defineInvokeEventa('eventa:invoke:e
 /** A memory file changed, for example in Notepad. */
 export const electronMemoryFilesChanged = defineEventa('eventa:event:electron:fairy:memory-files:changed')
 
+/** FAIRY: a message from the phone page, which the main window answers with `electronPhoneChatReply`. */
+export interface PhoneChatRequest {
+  id: string
+  kind: 'send' | 'history'
+  text?: string
+  /** A data URL of a JPEG, PNG, or WebP photo. */
+  image?: string
+}
+export interface PhoneChatReply {
+  id: string
+  ok: boolean
+  reply?: string
+  messages?: { role: 'user' | 'assistant', text: string }[]
+  error?: string
+}
+export const electronPhoneChatRequest = defineEventa<PhoneChatRequest>('eventa:event:electron:fairy:phone:request')
+export const electronPhoneChatReply = defineInvokeEventa<void, PhoneChatReply>('eventa:invoke:electron:fairy:phone:reply')
+/** The local port and the pairing key, for the QR code in Settings. */
+export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string }>('eventa:invoke:electron:fairy:phone:info')
+
 /** FAIRY: a web search through Tavily, with a short answer and sources. Needs FAIRY_TAVILY_API_KEY. */
 export const electronWebSearch = defineInvokeEventa<unknown, WebSearchRequest>('eventa:invoke:electron:fairy:web-search')
 
