@@ -17,6 +17,7 @@ import { WindowBackdropService } from '../../services/electron/window-backdrop'
 import { createLeagueService } from '../../services/fairy/league'
 import { createLookAtScreenService } from '../../services/fairy/look-at-screen'
 import { createMemoryFilesService } from '../../services/fairy/memory-files'
+import { createPhoneInfoService } from '../../services/fairy/phone'
 import { createWebKnowledgeService } from '../../services/fairy/web-knowledge'
 
 export function toggleWindowShow(window?: BrowserWindow | null): void {
@@ -211,6 +212,7 @@ export async function setupBaseWindowElectronInvokes(params: {
   createLookAtScreenService({ context: params.context, window: params.window })
   createLeagueService({ context: params.context })
   createWebKnowledgeService({ context: params.context })
+  createPhoneInfoService({ context: params.context })
   createMemoryFilesService({ context: params.context, onClosed: stop => params.window.once('closed', stop) })
 
   await createI18nService({ context: params.context, window: params.window, i18n: params.i18n })

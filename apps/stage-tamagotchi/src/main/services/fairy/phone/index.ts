@@ -147,6 +147,10 @@ export function createPhoneService(params: { context: MainContext }) {
     pending.get(reply.id)?.(reply)
     pending.delete(reply.id)
   })
+}
+
+/** Lets any window, such as Settings, read the pairing link for the QR code. */
+export function createPhoneInfoService(params: { context: MainContext }) {
   defineInvokeHandler(params.context, electronPhoneInfo, async () => ({ port: PHONE_PORT, key: await getPairingKey(), url: await tailnetUrl() }))
 }
 

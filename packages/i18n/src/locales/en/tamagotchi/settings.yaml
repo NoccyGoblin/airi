@@ -26,6 +26,7 @@ pages:
     title: Phone
     description: Talk to Iru from your phone, with the same memory and tools
     qr-alt: QR code that opens Iru on your phone
+    loading: Looking up this PC's Tailscale address…
     steps-title: Set up your phone once
     step-1: Install Tailscale from the Play Store and sign in with the same account as this PC.
     step-2: Scan this QR code with your phone camera and open the link.

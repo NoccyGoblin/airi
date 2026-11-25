@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessageFrom } from '@moeru/std'
 import { useElectronEventaInvoke } from '@proj-airi/electron-vueuse'
 import { renderSVG } from 'uqr'
 import { computed, onMounted, shallowRef } from 'vue'
@@ -10,9 +11,15 @@ import { electronPhoneInfo } from '../../../shared/eventa'
 const { t } = useI18n()
 const getPhoneInfo = useElectronEventaInvoke(electronPhoneInfo)
 const info = shallowRef<{ port: number, key: string, url?: string }>()
+const failed = shallowRef('')
 
 onMounted(async () => {
-  info.value = await getPhoneInfo()
+  try {
+    info.value = await getPhoneInfo()
+  }
+  catch (error) {
+    failed.value = errorMessageFrom(error) ?? 'Unknown error'
+  }
 })
 
 const pairingLink = computed(() => info.value?.url ? `${info.value.url}?key=${encodeURIComponent(info.value.key)}` : '')
@@ -25,6 +32,12 @@ const qrSource = computed(() => pairingLink.value
 
 <template>
   <div :class="['flex flex-col', 'gap-4']">
+    <p v-if="!info && !failed" :class="['m-0', 'text-sm', 'text-neutral-500 dark:text-neutral-400']">
+      {{ t('tamagotchi.settings.pages.phone.loading') }}
+    </p>
+    <div v-if="failed" :class="['rounded-xl', 'bg-red-100 dark:bg-red-900/40', 'p-4', 'text-sm']">
+      {{ failed }}
+    </div>
     <div v-if="info && !info.url" :class="['rounded-xl', 'bg-amber-100 dark:bg-amber-900/40', 'p-4', 'text-sm']">
       {{ t('tamagotchi.settings.pages.phone.no-tailscale') }}
     </div>
