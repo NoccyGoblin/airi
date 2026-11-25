@@ -61,7 +61,7 @@ const tools: Promise<Tool>[] = [
     execute: async (input: { query: string, recent?: boolean }) => safely(() => getInvokers().webSearch(input)),
     parameters: z.object({
       query: z.string().describe('A clear search query in English or the user\'s language.'),
-      recent: z.boolean().optional().describe('true to prefer news from the last 30 days.'),
+      recent: z.boolean().optional().describe('Set true for anything "latest", "new", "current", "this week", patches, news, or prices: it searches the last 30 days only.'),
     }),
   }),
 ]

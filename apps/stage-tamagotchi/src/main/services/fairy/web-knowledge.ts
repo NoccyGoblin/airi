@@ -75,11 +75,16 @@ export async function searchWeb(input: WebSearchRequest) {
     }
   }
 
+  // A plain "latest patch notes" search returned pages from years ago. Naming the month and year finds the current ones.
+  const query = input.recent && !/\b20\d{2}\b/.test(input.query)
+    ? `${input.query} ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+    : input.query
+
   const data = await getJson<TavilyResponse>('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
     body: JSON.stringify({
-      query: input.query,
+      query,
       search_depth: 'basic',
       include_answer: true,
       max_results: 5,
