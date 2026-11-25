@@ -35,16 +35,20 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   #preview img { height:64px; border-radius:8px; vertical-align:middle; }
   #preview button { width:28px; height:28px; font-size:14px; margin-left:6px; }
   input[type=file] { display:none; }
+  header button { margin-left:auto; width:36px; height:36px; font-size:17px; }
+  button.mic { touch-action:none; user-select:none; -webkit-user-select:none; }
+  button.mic.on { background:#d8466d; transform:scale(1.15); }
 </style>
 </head>
 <body>
-<header>🧚 Iru <small id="status">connecting…</small></header>
+<header>🧚 Iru <small id="status">connecting…</small><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
 <div id="log"></div>
 <div id="preview"><img id="previewImg" alt=""><button type="button" id="clearImg" aria-label="Remove photo">✕</button></div>
 <form id="form">
   <button type="button" id="cam" aria-label="Take a photo">📷</button>
   <button type="button" id="gal" aria-label="Pick a photo">🖼️</button>
   <textarea id="text" rows="1" placeholder="Message Iru…"></textarea>
+  <button type="button" class="mic" id="mic" aria-label="Hold to talk">🎤</button>
   <button class="send" id="send" aria-label="Send">➤</button>
   <input id="camInput" type="file" accept="image/*" capture="environment">
   <input id="galInput" type="file" accept="image/*">
@@ -118,6 +122,35 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 
   text.addEventListener('input', () => { text.style.height = 'auto'; text.style.height = text.scrollHeight + 'px' })
 
+  // -- Spoken replies: the PC voice when speech is set up there, else the voice of the phone --
+  let voiceOn = localStorage.getItem('fairy-voice') !== 'off'
+  const voiceBtn = $('voice')
+  function showVoice() { voiceBtn.textContent = voiceOn ? '🔊' : '🔇'; voiceBtn.setAttribute('aria-pressed', String(voiceOn)) }
+  voiceBtn.onclick = () => { voiceOn = !voiceOn; localStorage.setItem('fairy-voice', voiceOn ? 'on' : 'off'); if (!voiceOn) stopTalking(); showVoice() }
+  showVoice()
+  const player = new Audio()
+  function stopTalking() { player.pause(); if (window.speechSynthesis) speechSynthesis.cancel() }
+  function talk(data) {
+    if (!voiceOn) return
+    if (data.speech) { player.src = data.speech; player.play().catch(() => {}); return }
+    const words = (data.reply || '').replace(/[\\p{Extended_Pictographic}\\uFE0F\\u200D]/gu, '').trim()
+    if (words && window.speechSynthesis) speechSynthesis.speak(new SpeechSynthesisUtterance(words))
+  }
+
+  async function ask(body, onReply) {
+    send.disabled = true; mic.disabled = true
+    const waiting = note('Iru is thinking…')
+    try {
+      const data = await api('./api/send', { ...body, speak: voiceOn })
+      waiting.remove()
+      onReply(data)
+      add('assistant', data.reply || '…')
+      talk(data)
+      status.textContent = 'online'
+    } catch (err) { waiting.remove(); note(err.message) }
+    finally { send.disabled = false; mic.disabled = false }
+  }
+
   $('form').onsubmit = async (e) => {
     e.preventDefault()
     const body = text.value.trim()
@@ -125,16 +158,60 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
     const sentImage = image
     add('user', body, sentImage)
     text.value = ''; text.style.height = 'auto'; image = null; $('preview').style.display = 'none'
-    send.disabled = true
-    const waiting = note('Iru is thinking…')
-    try {
-      const data = await api('./api/send', { text: body || 'What do you see in this photo?', image: sentImage })
-      waiting.remove()
-      add('assistant', data.reply || '…')
-      status.textContent = 'online'
-    } catch (err) { waiting.remove(); note(err.message) }
-    finally { send.disabled = false }
+    await ask({ text: body || 'What do you see in this photo?', image: sentImage }, () => {})
   }
+
+  // -- Hold to talk: records 16 kHz mono audio, and the PC turns it into text --
+  const mic = $('mic')
+  let rec = null
+  async function startRec() {
+    if (rec || mic.disabled) return
+    stopTalking()
+    const state = { chunks: [], stopped: false }
+    rec = state
+    mic.classList.add('on')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+      const ctx = new AudioContext({ sampleRate: 16000 })
+      const source = ctx.createMediaStreamSource(stream)
+      const proc = ctx.createScriptProcessor(4096, 1, 1)
+      proc.onaudioprocess = ev => { if (!state.stopped) state.chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0))) }
+      source.connect(proc); proc.connect(ctx.destination)
+      state.close = () => { proc.disconnect(); source.disconnect(); stream.getTracks().forEach(t => t.stop()); ctx.close() }
+      state.rate = ctx.sampleRate
+      if (state.stopped) finishRec(state)
+    } catch (err) {
+      rec = null; mic.classList.remove('on')
+      note('The mic did not start: ' + (err.message || err))
+    }
+  }
+  function stopRec() {
+    const state = rec
+    if (!state) return
+    state.stopped = true
+    mic.classList.remove('on')
+    if (state.close) finishRec(state)
+  }
+  function finishRec(state) {
+    rec = null
+    state.close()
+    const total = state.chunks.reduce((n, c) => n + c.length, 0)
+    if (total < state.rate * 0.4) { note('Hold the 🎤 button while you talk.'); return }
+    // Resample to 16 kHz in case the phone ignored the asked rate.
+    const step = state.rate / 16000, length = Math.floor(total / step)
+    const all = new Float32Array(total); let at = 0
+    for (const c of state.chunks) { all.set(c, at); at += c.length }
+    const pcm = new DataView(new ArrayBuffer(length * 2))
+    for (let i = 0; i < length; i++) { const s = Math.max(-1, Math.min(1, all[Math.floor(i * step)])); pcm.setInt16(i * 2, s < 0 ? s * 32768 : s * 32767, true) }
+    const bytes = new Uint8Array(pcm.buffer); let bin = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000))
+    const bubble = add('user', '🎤 …')
+    ask({ audio: btoa(bin) }, data => { bubble.textContent = data.heard ? '🎤 ' + data.heard : '🎤' })
+  }
+  mic.addEventListener('pointerdown', e => { e.preventDefault(); mic.setPointerCapture(e.pointerId); startRec() })
+  mic.addEventListener('pointerup', stopRec)
+  mic.addEventListener('pointercancel', stopRec)
+  mic.addEventListener('contextmenu', e => e.preventDefault())
   text.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer:fine)').matches) { e.preventDefault(); $('form').requestSubmit() } })
 
   if (!key) note('Open this page from the QR code in Iru on your PC to pair this phone.')

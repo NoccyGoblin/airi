@@ -739,6 +739,29 @@ export const useSpeechStore = defineStore('speech', () => {
     } }
   }
 
+  /**
+   * Speaks one finished text into one audio file, with the voice of a speech selection.
+   *
+   * Use when:
+   * - Audio must play somewhere other than this window, for example on a paired phone
+   *
+   * Returns:
+   * - The audio, or `null` when speech is off or the provider streams over a socket
+   */
+  async function synthesizeText(selection: AiriExtension['modules']['speech'], text: string, signal: AbortSignal): Promise<Blob | null> {
+    const providerId = selection.provider
+    if (!enabled.value || !providerId || providerId === 'speech-noop' || !text.trim())
+      return null
+    const config = structuredClone(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
+    const { model, voiceId, streaming } = resolveSpeechSelection(selection, config, () => providersStore.getDefaultModelForProvider(providerId))
+    if (streaming || !model || !voiceId)
+      return null
+    const client = await providersStore.getProviderInstance<SpeechProviderWithExtraOptions<string, Record<string, unknown>>>(providerId)
+    signal.throwIfAborted()
+    const audio = await generateSpeech({ ...client.speech(model, config), input: text, voice: voiceId, abortSignal: signal })
+    return new Blob([audio])
+  }
+
   function withAiriTtsAnalytics(
     providerConfig: Record<string, any>,
     analytics: SpeechAnalytics,
@@ -904,6 +927,7 @@ export const useSpeechStore = defineStore('speech', () => {
     generateSSML,
     resolveSpeechInput,
     createOutput,
+    synthesizeText,
     resetState,
     resetSettings,
   }

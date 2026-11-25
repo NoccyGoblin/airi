@@ -256,11 +256,19 @@ export interface PhoneChatRequest {
   text?: string
   /** A data URL of a JPEG, PNG, or WebP photo. */
   image?: string
+  /** Base64 of a voice message: mono 16-bit little-endian PCM at 16 kHz. The PC hearing module transcribes it. */
+  audio?: string
+  /** Asks for the reply as audio too, in the voice of the PC speech module. */
+  speak?: boolean
 }
 export interface PhoneChatReply {
   id: string
   ok: boolean
+  /** What the PC heard in a voice message. */
+  heard?: string
   reply?: string
+  /** A data URL of the spoken reply. It is missing when speech is not set up on the PC. */
+  speech?: string
   messages?: { role: 'user' | 'assistant', text: string }[]
   error?: string
 }

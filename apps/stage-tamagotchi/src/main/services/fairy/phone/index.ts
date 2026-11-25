@@ -114,7 +114,7 @@ export function startPhoneServer() {
       const raw = await event.req.text()
       if (raw.length > MAX_BODY_BYTES)
         return json({ ok: false, error: 'The photo is too large.' }, 413)
-      let body: { text?: unknown, image?: unknown }
+      let body: { text?: unknown, image?: unknown, audio?: unknown, speak?: unknown }
       try {
         body = JSON.parse(raw)
       }
@@ -123,10 +123,13 @@ export function startPhoneServer() {
       }
       const text = typeof body.text === 'string' ? body.text.slice(0, 4000) : ''
       const image = typeof body.image === 'string' && /^data:image\/(?:jpeg|png|webp);base64,/.test(body.image) ? body.image : undefined
-      if (!text.trim() && !image)
+      const audio = typeof body.audio === 'string' && /^[A-Z0-9+/]+={0,2}$/i.test(body.audio) ? body.audio : undefined
+      if (!text.trim() && !image && !audio)
         return json({ ok: false, error: 'Empty message' }, 400)
-      const reply = await askMainWindow({ kind: 'send', text, image })
-      return reply.ok ? json({ ok: true, reply: reply.reply ?? '' }) : json({ ok: false, error: reply.error }, 503)
+      const reply = await askMainWindow({ kind: 'send', text, image, audio, speak: body.speak === true })
+      return reply.ok
+        ? json({ ok: true, heard: reply.heard, reply: reply.reply ?? '', speech: reply.speech })
+        : json({ ok: false, error: reply.error }, 503)
     }))
 
     const server = createH3Server({ app, host: '127.0.0.1', port: PHONE_PORT })
