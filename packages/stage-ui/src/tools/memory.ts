@@ -19,7 +19,8 @@ const forgetParameters = strictObject({ id: idSchema })
 // Strict function calling needs every property in `required`, in nested objects too, so a new entry gives a null id.
 const entrySchema = strictObject({
   id: pipe(nullable(string()), description('The id of the entry to change, as the memory index shows it. Null for a new entry.')),
-  description: pipe(string(), maxLength(150), description('One line for the index. When the fact fits in one line, write the fact itself. Otherwise write when the fact matters.')),
+  // FAIRY: the title names the file, so it holds the topic only. The fact goes in the body and can change later.
+  description: pipe(string(), maxLength(80), description('The topic only, never the fact or answer, for example "Main champion in League of Legends" or "Favourite food", not "Main champion is Ahri". It names the file, so keep it the same when the fact changes.')),
   body: pipe(string(), minLength(1), maxLength(2000), description('The fact itself, with what makes it true or when it was said.')),
 })
 const writeParameters = strictObject({
@@ -34,14 +35,15 @@ export function composeMemoryPrompt(index: string) {
   return [
     '',
     '',
-    'Long-term memory. You keep it yourself. Each index line gives the id of one remembered topic, and states it or when it matters.',
+    'Long-term memory. You keep it yourself. Each index line gives the id and title of one remembered topic, and its fact when the fact is short.',
     `Read entries with ${READ_MEMORY_TOOL_NAME} when they matter for your reply. An index line that already states the fact needs no read.`,
     // FAIRY: the user wants the companion to remember everything they share, unless they say not to.
     `Remember everything the user tells you about themselves and their life: save it with ${WRITE_MEMORY_TOOL_NAME} in the same turn,`,
     'without asking. That includes games, mains and roles, ranks, likes and dislikes, food, plans, work and school, people and pets,',
     'events, opinions, and how they want answers. Do not save small talk that holds no fact.',
     'Only when the user says not to remember something ("don\'t remember this", "off the record"), do not save it, and forget it if you already did.',
-    'Keep one entry per topic, with a clear title such as "Main champion" or "Favourite food". Before saving, check the index:',
+    'Keep one entry per topic. The title names only the topic, never the fact: "Main champion in League of Legends", not "Main champion: Ahri";',
+    '"Favourite food", not "Favourite food is sushi". The fact goes in the body. Before saving, check the index:',
     'when an entry for that topic exists, rewrite it with its id instead of adding a new one. When a fact changes, for example a new main,',
     'rewrite the entry with the new fact and keep the old one as a short note, such as "Main: Ahri (before: Lux, until November 2026)".',
     'Never save passwords, PINs, codes, card or bank numbers, or other secrets, even when asked. Never save what a recipe already holds or your own rules.',

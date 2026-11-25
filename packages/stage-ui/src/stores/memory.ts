@@ -80,7 +80,13 @@ export const useMemoryStore = defineStore('memory', () => {
    * A run reads it when it starts, from the entries that the window read last.
    */
   function indexFor(personaId: string) {
-    const line = (entry: MemoryEntry) => `- ${entry.id}: ${entry.description}`
+    // FAIRY: titles name only the topic, so a short fact rides along; a long one is read when it matters.
+    const line = (entry: MemoryEntry) => {
+      const fact = entry.body.trim()
+      return fact.length <= 200 && !fact.includes('\n')
+        ? `- ${entry.id}: ${entry.description} — ${fact}`
+        : `- ${entry.id}: ${entry.description}`
+    }
     const own = entries.value.filter(entry => entry.persona === personaId).map(line)
     const general = entries.value.filter(entry => !entry.persona).map(line)
     return [
