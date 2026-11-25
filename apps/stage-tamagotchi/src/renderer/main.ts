@@ -12,9 +12,7 @@ import { pushToTalkTriggerKey } from '@proj-airi/stage-ui/composables/push-to-ta
 import { trackButtonPlugin } from '@proj-airi/stage-ui/directives/track-button'
 import { browserAuthorizationHandler, registerAuthorizationHandler } from '@proj-airi/stage-ui/libs/auth'
 import { piniaPluginTracing, setupSynced } from '@proj-airi/stage-ui/libs/pinia'
-import { startErrorReporting } from '@proj-airi/stage-ui/libs/product-signals'
 import { settingsSearch } from '@proj-airi/stage-ui/libs/settings-search'
-import { useSettingsAnalytics } from '@proj-airi/stage-ui/stores/settings/analytics'
 import { MotionPlugin } from '@vueuse/motion'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
@@ -91,10 +89,7 @@ if (import.meta.hot) {
 }
 
 const app = createApp(App)
-startErrorReporting(app, () => useSettingsAnalytics(pinia).analyticsEnabled, async (options) => {
-  const { createSentryAdapter } = await import('./modules/sentry')
-  return createSentryAdapter(options)
-})
+// PRIVACY: no Sentry error reports from the windows either.
 
 app
   .use(synced.vue)
