@@ -266,8 +266,8 @@ export interface PhoneChatReply {
 }
 export const electronPhoneChatRequest = defineEventa<PhoneChatRequest>('eventa:event:electron:fairy:phone:request')
 export const electronPhoneChatReply = defineInvokeEventa<void, PhoneChatReply>('eventa:invoke:electron:fairy:phone:reply')
-/** The local port and the pairing key, for the QR code in Settings. */
-export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string }>('eventa:invoke:electron:fairy:phone:info')
+/** The local port, the pairing key, and the Tailscale HTTPS address, for the QR code in Settings. */
+export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string, url?: string }>('eventa:invoke:electron:fairy:phone:info')
 
 /** FAIRY: a web search through Tavily, with a short answer and sources. Needs FAIRY_TAVILY_API_KEY. */
 export const electronWebSearch = defineInvokeEventa<unknown, WebSearchRequest>('eventa:invoke:electron:fairy:web-search')

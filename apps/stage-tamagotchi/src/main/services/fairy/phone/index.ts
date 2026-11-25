@@ -3,10 +3,12 @@ import type { createContext } from '@moeru/eventa/adapters/electron/main'
 import type { PhoneChatReply, PhoneChatRequest } from '../../../../shared/eventa'
 
 import { Buffer } from 'node:buffer'
+import { execFile } from 'node:child_process'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { promisify } from 'node:util'
 
 import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
@@ -28,6 +30,7 @@ import { PHONE_ICON_SVG, PHONE_MANIFEST, PHONE_PAGE_HTML } from './page'
  */
 
 export const PHONE_PORT = 7461
+const execFileAsync = promisify(execFile)
 const REPLY_TIMEOUT_MS = 120_000
 const MAX_BODY_BYTES = 8 * 1024 * 1024
 
@@ -144,5 +147,23 @@ export function createPhoneService(params: { context: MainContext }) {
     pending.get(reply.id)?.(reply)
     pending.delete(reply.id)
   })
-  defineInvokeHandler(params.context, electronPhoneInfo, async () => ({ port: PHONE_PORT, key: await getPairingKey() }))
+  defineInvokeHandler(params.context, electronPhoneInfo, async () => ({ port: PHONE_PORT, key: await getPairingKey(), url: await tailnetUrl() }))
+}
+
+const TAILSCALE_PATHS = ['tailscale', 'C:\\Program Files\\Tailscale\\tailscale.exe']
+
+/** This PC's private HTTPS address on the Tailscale network, for example https://noocy.tail1234.ts.net/. */
+async function tailnetUrl(): Promise<string | undefined> {
+  for (const command of TAILSCALE_PATHS) {
+    try {
+      const { stdout } = await execFileAsync(command, ['status', '--json'], { timeout: 5000, windowsHide: true })
+      const dnsName = (JSON.parse(stdout) as { Self?: { DNSName?: string } }).Self?.DNSName?.replace(/\.$/, '')
+      if (dnsName)
+        return `https://${dnsName}/`
+    }
+    catch {
+      // Try the next location.
+    }
+  }
+  return undefined
 }

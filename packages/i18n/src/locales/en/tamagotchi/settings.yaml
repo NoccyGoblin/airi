@@ -22,6 +22,17 @@ spotlight:
     prefix: 'Something went wrong: {message}'
     shortcutRegistrationFailed: 'Something went wrong: failed to register Spotlight shortcut.'
 pages:
+  phone:
+    title: Phone
+    description: Talk to Iru from your phone, with the same memory and tools
+    qr-alt: QR code that opens Iru on your phone
+    steps-title: Set up your phone once
+    step-1: Install Tailscale from the Play Store and sign in with the same account as this PC.
+    step-2: Scan this QR code with your phone camera and open the link.
+    step-3: In Chrome, open the ⋮ menu and choose "Add to Home screen".
+    address: Address
+    no-tailscale: Tailscale was not found on this PC, or it is not signed in. Start Tailscale and open this page again.
+    private: Only your own Tailscale devices can open this address. The QR code also holds the pairing key, so do not share it.
   connection:
     apply-error:
       title: Connection settings not applied
