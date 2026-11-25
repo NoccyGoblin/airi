@@ -69,6 +69,7 @@ import {
 import { electronPluginToolsChanged } from '../shared/eventa/plugin/tools'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
+import { setupLiveModeBridge } from './bridges/live-mode'
 import { setupPhoneChatBridge } from './bridges/phone-chat'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
 import { useDevicePermissions } from './composables/use-device-permissions'
@@ -313,6 +314,8 @@ function createFullStageRuntime() {
 
   // FAIRY: only the main window receives phone messages, so only it answers them.
   setupPhoneChatBridge(context.value)
+  // FAIRY: only the main window gets the live mode beat, so only it runs live mode.
+  setupLiveModeBridge(context.value)
 
   return {
     async initialize() {

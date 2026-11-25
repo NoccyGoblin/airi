@@ -277,6 +277,9 @@ export const electronPhoneChatReply = defineInvokeEventa<void, PhoneChatReply>('
 /** The local port, the pairing key, and the Tailscale HTTPS address, for the QR code in Settings. */
 export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string, url?: string }>('eventa:invoke:electron:fairy:phone:info')
 
+/** FAIRY: a beat every few seconds to the main window. While live mode is on, the window decides there whether to look. */
+export const electronLiveModeTick = defineEventa<void>('eventa:event:electron:fairy:live-mode:tick')
+
 /** FAIRY: a web search through Tavily, with a short answer and sources. Needs FAIRY_TAVILY_API_KEY. */
 export const electronWebSearch = defineInvokeEventa<unknown, WebSearchRequest>('eventa:invoke:electron:fairy:web-search')
 

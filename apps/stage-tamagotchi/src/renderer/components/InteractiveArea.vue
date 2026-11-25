@@ -36,6 +36,7 @@ import { electronAuthStartLogin, electronLookAtScreen, electronOpenSettings } fr
 import { COMPUTER_USE_READ_IMAGE_TOOL_NAME, COMPUTER_USE_TOOL_NAME } from '../../shared/eventa/computer-use'
 import { sessionApprovalGrant } from '../../shared/eventa/terminal-approval'
 import { useHearingInputChannel } from '../composables/use-hearing-input-channel'
+import { useLiveModeStore } from '../stores/live-mode'
 import { artistryToolReferences, widgetToolReferences } from '../stores/tools'
 import { WEATHER_TOOL_NAME } from '../stores/tools/builtin/weather'
 import { matchesMcpToolId } from '../utils/mcp-tool-id'
@@ -300,6 +301,7 @@ function handleManualAttach() {
 // "Look at my screen": one screenshot, only on click. It goes into the composer like a pasted image, so the user sees it
 // and can remove it before sending. Nothing is captured on a timer.
 const lookAtScreen = useElectronEventaInvoke(electronLookAtScreen)
+const liveMode = useLiveModeStore()
 const lookingAtScreen = shallowRef(false)
 async function handleLookAtScreen() {
   if (lookingAtScreen.value)
@@ -668,6 +670,18 @@ defineExpose({
             @click="handleLookAtScreen"
           >
             <span :class="[lookingAtScreen ? 'i-svg-spinners:ring-resize' : 'i-solar:eye-bold-duotone', 'h-5 w-5']" />
+          </GhostButton>
+          <GhostButton
+            size="unset"
+            data-testid="live-mode-button"
+            :class="['size-9 transition-colors duration-200 motion-reduce:transition-none', liveMode.enabled ? 'text-red-500 dark:text-red-400' : '']"
+            :active="liveMode.enabled"
+            :aria-pressed="liveMode.enabled"
+            :title="liveMode.enabled ? t('stage.chat.images.live-mode-on') : t('stage.chat.images.live-mode-off')"
+            :aria-label="liveMode.enabled ? t('stage.chat.images.live-mode-on') : t('stage.chat.images.live-mode-off')"
+            @click="liveMode.toggle()"
+          >
+            <span :class="[liveMode.enabled ? 'i-solar:videocamera-record-bold animate-pulse motion-reduce:animate-none' : 'i-solar:videocamera-record-bold-duotone', 'h-5 w-5']" />
           </GhostButton>
           <DropdownMenu side="top" :content-class="['w-80']" @update:open="$event && refreshApproval(activeSessionId)">
             <template #trigger>

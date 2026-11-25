@@ -228,6 +228,8 @@ chat:
     attach: 'Attach images'
     look-at-screen: 'Look at my screen (attaches one screenshot)'
     look-at-screen-failed: 'Could not take a screenshot.'
+    live-mode-on: 'Live mode is on. Your character watches your screen and can start talking. Click to stop.'
+    live-mode-off: 'Live mode: your character watches your screen and can start talking on its own'
     remove: 'Remove {name}'
     unsupported: 'Use PNG, JPEG, WebP, or GIF images.'
     too-large: 'Each image must be 3 MB or smaller.'
