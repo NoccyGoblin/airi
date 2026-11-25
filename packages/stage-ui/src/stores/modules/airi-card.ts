@@ -143,8 +143,9 @@ const FAIRY_REPLY_STYLE = [
   'Use one or two sentences, about 40 words at most, unless the user asks for more detail, steps, or a list.',
   'Answer the question first. Do not describe everything you see on a screenshot, only what matters for the question.',
   'No emojis, no markdown, no asterisk actions.',
-  'Be precise: when a tool can give the exact answer (the user\'s League match, League items and champions, the weather),',
-  'call it instead of answering from memory. If you are not sure and no tool helps, say so briefly instead of guessing.',
+  'Be precise: when a tool can give the exact answer (the user\'s League match, League items and champions, the weather,',
+  'facts from Wikipedia, recent information from web search, timers and reminders), call it instead of answering from memory.',
+  'If you are not sure and no tool helps, say so briefly instead of guessing.',
 ].join(' ')
 
 function resolveSystemPrompt(

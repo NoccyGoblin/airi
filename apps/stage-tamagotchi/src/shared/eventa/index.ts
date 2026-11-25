@@ -215,6 +215,21 @@ export interface LeagueLookupRequest {
 /** FAIRY: one item, champion, rune, or summoner spell from Riot's Data Dragon, newest patch. */
 export const electronLeagueLookup = defineInvokeEventa<unknown, LeagueLookupRequest>('eventa:invoke:electron:fairy:league-lookup')
 
+export interface WikipediaRequest {
+  query: string
+  /** Wikipedia language code, for example "en" or "nl". */
+  language?: string
+}
+/** FAIRY: a Wikipedia page summary. Free, no account. */
+export const electronWikipedia = defineInvokeEventa<unknown, WikipediaRequest>('eventa:invoke:electron:fairy:wikipedia')
+export interface WebSearchRequest {
+  query: string
+  /** Prefer news from the last 30 days. */
+  recent?: boolean
+}
+/** FAIRY: a web search through Tavily, with a short answer and sources. Needs FAIRY_TAVILY_API_KEY. */
+export const electronWebSearch = defineInvokeEventa<unknown, WebSearchRequest>('eventa:invoke:electron:fairy:web-search')
+
 export const ioTraceRecordingChanged = defineEventa<IOTraceRecordingState>('eventa:event:electron:io-trace-recording:changed')
 export const ioTraceRecordingGet = defineInvokeEventa<IOTraceRecordingState>('eventa:invoke:electron:io-trace-recording:get')
 export const ioTraceRecordingSetEnabled = defineInvokeEventa<IOTraceRecordingState, { enabled: boolean }>('eventa:invoke:electron:io-trace-recording:set-enabled')

@@ -32,6 +32,11 @@ vi.mock('./builtin/reminders', () => ({
   CANCEL_REMINDER_TOOL_NAME: 'cancel_reminder',
   reminderTools: vi.fn(async () => [executableTool('set_reminder'), executableTool('list_reminders'), executableTool('cancel_reminder')]),
 }))
+vi.mock('./builtin/web-knowledge', () => ({
+  WIKIPEDIA_TOOL_NAME: 'wikipedia',
+  WEB_SEARCH_TOOL_NAME: 'web_search',
+  webKnowledgeTools: vi.fn(async () => [executableTool('wikipedia'), executableTool('web_search')]),
+}))
 vi.mock('./builtin/widgets', () => ({
   widgetsTools: vi.fn(async () => [executableTool('stage_widgets')]),
 }))
@@ -61,6 +66,8 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:set_reminder', defaultActive: false },
       { id: 'tamagotchi:list_reminders', defaultActive: false },
       { id: 'tamagotchi:cancel_reminder', defaultActive: false },
+      { id: 'tamagotchi:wikipedia', defaultActive: false },
+      { id: 'tamagotchi:web_search', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')

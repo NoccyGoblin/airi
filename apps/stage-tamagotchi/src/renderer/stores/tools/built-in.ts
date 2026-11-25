@@ -9,6 +9,7 @@ import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
 import { weatherTools } from './builtin/weather'
+import { WEB_SEARCH_TOOL_NAME, webKnowledgeTools, WIKIPEDIA_TOOL_NAME } from './builtin/web-knowledge'
 import { widgetsTools } from './builtin/widgets'
 
 export const widgetToolReferences = [
@@ -21,6 +22,9 @@ export const widgetToolReferences = [
   { name: SET_REMINDER_TOOL_NAME },
   { name: LIST_REMINDERS_TOOL_NAME },
   { name: CANCEL_REMINDER_TOOL_NAME },
+  // FAIRY: facts and current information.
+  { name: WIKIPEDIA_TOOL_NAME },
+  { name: WEB_SEARCH_TOOL_NAME },
 ] satisfies ChatToolReference[]
 
 export const artistryToolReferences = [
@@ -46,6 +50,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       weatherTools().then(tools => ({ tools, icon: TOOL_ICONS.weather })),
       leagueTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
       reminderTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
+      webKnowledgeTools().then(tools => ({ tools, icon: TOOL_ICONS.search })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())
