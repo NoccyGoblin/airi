@@ -927,13 +927,16 @@ describe('airi-card store', () => {
 
     await cardStore.activateCard(cardId)
 
-    expect(cardStore.systemPrompt).toBe([
+    const [cardPart, replyStyle] = cardStore.systemPrompt.split(/\n\n(?=Reply style:)/)
+    expect(cardPart).toBe([
       'Follow the character rules.',
       'A patient field researcher.',
       'Curious and precise.',
       'The conversation takes place in an observatory.',
       'Use the image widget for star charts.',
     ].join('\n\n'))
+    // FAIRY: the short spoken reply style is always last.
+    expect(replyStyle).toMatch(/^Reply style: /)
     expect(cardStore.systemPrompt).not.toContain('Answer the latest observation')
     expect(cardStore.systemPrompt).not.toContain('Welcome to the observatory')
     expect(cardStore.systemPrompt).not.toContain('What did you find?')
