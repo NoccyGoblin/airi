@@ -32,7 +32,7 @@ import JournalToolCallBlock from './chat-tool-renderers/journal-tool-call-block.
 import ChatViewportLayout from './chat-viewport-layout.vue'
 import ContextInspector from './context-inspector.vue'
 
-import { electronAuthStartLogin, electronOpenSettings } from '../../shared/eventa'
+import { electronAuthStartLogin, electronLookAtScreen, electronOpenSettings } from '../../shared/eventa'
 import { COMPUTER_USE_READ_IMAGE_TOOL_NAME, COMPUTER_USE_TOOL_NAME } from '../../shared/eventa/computer-use'
 import { sessionApprovalGrant } from '../../shared/eventa/terminal-approval'
 import { useHearingInputChannel } from '../composables/use-hearing-input-channel'
@@ -295,6 +295,29 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 function handleManualAttach() {
   fileInput.value?.click()
+}
+
+// "Look at my screen": one screenshot, only on click. It goes into the composer like a pasted image, so the user sees it
+// and can remove it before sending. Nothing is captured on a timer.
+const lookAtScreen = useElectronEventaInvoke(electronLookAtScreen)
+const lookingAtScreen = shallowRef(false)
+async function handleLookAtScreen() {
+  if (lookingAtScreen.value)
+    return
+  lookingAtScreen.value = true
+  try {
+    const shot = await lookAtScreen()
+    const bytes = Uint8Array.from(atob(shot.data), char => char.charCodeAt(0))
+    const file = new File([bytes], `screen-${Date.now()}.jpg`, { type: shot.mimeType })
+    await handleFilePaste([file])
+  }
+  catch (error) {
+    console.warn('[look-at-screen]', errorMessageFrom(error))
+    imageError.value = t('stage.chat.images.look-at-screen-failed')
+  }
+  finally {
+    lookingAtScreen.value = false
+  }
 }
 
 function handleMessageInputKeydown(event: KeyboardEvent) {
@@ -634,6 +657,17 @@ defineExpose({
             @click="handleManualAttach"
           >
             <span :class="['i-solar:paperclip-bold-duotone h-5 w-5']" />
+          </GhostButton>
+          <GhostButton
+            size="unset"
+            data-testid="look-at-screen-button"
+            :class="['size-9 transition-colors duration-200 motion-reduce:transition-none']"
+            :disabled="lookingAtScreen"
+            :title="t('stage.chat.images.look-at-screen')"
+            :aria-label="t('stage.chat.images.look-at-screen')"
+            @click="handleLookAtScreen"
+          >
+            <span :class="[lookingAtScreen ? 'i-svg-spinners:ring-resize' : 'i-solar:eye-bold-duotone', 'h-5 w-5']" />
           </GhostButton>
           <DropdownMenu side="top" :content-class="['w-80']" @update:open="$event && refreshApproval(activeSessionId)">
             <template #trigger>

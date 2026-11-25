@@ -198,6 +198,14 @@ export const electronMainWindowRefreshUnread = defineEventa('eventa:event:electr
 export const electronSettingsNavigate = defineEventa<{ route: string }>('eventa:event:electron:windows:settings:navigate')
 export const electronOpenChat = defineInvokeEventa('eventa:invoke:electron:windows:chat:open')
 
+/** One screenshot of the screen under the calling window, as base64 JPEG. Taken only when the user asks for it. */
+export interface LookAtScreenResult {
+  mimeType: 'image/jpeg'
+  /** Base64 data without the `data:` prefix. */
+  data: string
+}
+export const electronLookAtScreen = defineInvokeEventa<LookAtScreenResult>('eventa:invoke:electron:fairy:look-at-screen')
+
 export const ioTraceRecordingChanged = defineEventa<IOTraceRecordingState>('eventa:event:electron:io-trace-recording:changed')
 export const ioTraceRecordingGet = defineInvokeEventa<IOTraceRecordingState>('eventa:invoke:electron:io-trace-recording:get')
 export const ioTraceRecordingSetEnabled = defineInvokeEventa<IOTraceRecordingState, { enabled: boolean }>('eventa:invoke:electron:io-trace-recording:set-enabled')
