@@ -13,8 +13,10 @@ type OllamaThinkingMode = 'auto' | 'disable' | 'enable' | 'high' | 'low' | 'medi
 const ollamaConfigSchema = z.object({
   baseUrl: z.string()
     .default('http://localhost:11434/v1/'),
+  // FAIRY: default to no thinking. With `auto`, qwen3 models think for hundreds of hidden tokens before each reply, which
+  // makes a local companion slow. Pick `enable` in the provider's advanced settings to turn it back on.
   thinkingMode: z.enum(['auto', 'disable', 'enable', 'low', 'medium', 'high'])
-    .default('auto'),
+    .default('disable'),
   headers: z.record(z.string(), z.string())
     .optional(),
 })

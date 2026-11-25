@@ -25,7 +25,8 @@ export interface VisionInferenceInput {
 }
 
 // TODO: this should be configurable
-const VISION_INFERENCE_TIMEOUT_MS = 60_000
+// FAIRY: 2 minutes. A local vision model can need ~15 s just to load into graphics memory on the first read.
+const VISION_INFERENCE_TIMEOUT_MS = 120_000
 
 /** The read queue of this window, shared by attachments, tool images, and the screen ticker. */
 const visionReadQueue = new VisionReadQueue()
@@ -67,7 +68,9 @@ export function useVisionInference() {
             const request = provider.generation(model)
             if (request.protocol !== 'chat-completions')
               return request
-            return { ...request, config: { ...request.config, think: thinking } }
+            // FAIRY: Ollama's OpenAI-compatible /v1 endpoint ignores `think`. Only `reasoning_effort` turns thinking
+            // off there. Without it qwen3-vl wrote ~1,700 hidden tokens even for "hi" and timed out on screenshots.
+            return { ...request, config: { ...request.config, think: thinking, reasoningEffort: thinking ? 'medium' : 'none' } }
           },
         }
       : provider
