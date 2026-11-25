@@ -6,12 +6,16 @@ import { TOOL_ICONS } from '@proj-airi/stage-ui/tools/icons'
 import { defineStore } from 'pinia'
 
 import { imageJournalTools } from './builtin/image-journal'
+import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
 import { weatherTools } from './builtin/weather'
 import { widgetsTools } from './builtin/widgets'
 
 export const widgetToolReferences = [
   { name: 'stage_widgets' },
   { name: 'get_weather' },
+  // FAIRY: League facts from Riot's data, offered with every chat and voice message.
+  { name: LEAGUE_LIVE_GAME_TOOL_NAME },
+  { name: LEAGUE_LOOKUP_TOOL_NAME },
 ] satisfies ChatToolReference[]
 
 export const artistryToolReferences = [
@@ -35,6 +39,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       imageJournalTools().then(tools => ({ tools, icon: TOOL_ICONS.imageJournal })),
       widgetsTools().then(tools => ({ tools, icon: TOOL_ICONS.widgets })),
       weatherTools().then(tools => ({ tools, icon: TOOL_ICONS.weather })),
+      leagueTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

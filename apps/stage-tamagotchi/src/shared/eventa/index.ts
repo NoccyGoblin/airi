@@ -206,6 +206,15 @@ export interface LookAtScreenResult {
 }
 export const electronLookAtScreen = defineInvokeEventa<LookAtScreenResult>('eventa:invoke:electron:fairy:look-at-screen')
 
+/** FAIRY: a compact view of the running League match from Riot's local Live Client Data API. */
+export const electronLeagueLiveGame = defineInvokeEventa<unknown>('eventa:invoke:electron:fairy:league-live-game')
+export interface LeagueLookupRequest {
+  name: string
+  kind: 'any' | 'item' | 'champion' | 'rune' | 'summoner_spell'
+}
+/** FAIRY: one item, champion, rune, or summoner spell from Riot's Data Dragon, newest patch. */
+export const electronLeagueLookup = defineInvokeEventa<unknown, LeagueLookupRequest>('eventa:invoke:electron:fairy:league-lookup')
+
 export const ioTraceRecordingChanged = defineEventa<IOTraceRecordingState>('eventa:event:electron:io-trace-recording:changed')
 export const ioTraceRecordingGet = defineInvokeEventa<IOTraceRecordingState>('eventa:invoke:electron:io-trace-recording:get')
 export const ioTraceRecordingSetEnabled = defineInvokeEventa<IOTraceRecordingState, { enabled: boolean }>('eventa:invoke:electron:io-trace-recording:set-enabled')

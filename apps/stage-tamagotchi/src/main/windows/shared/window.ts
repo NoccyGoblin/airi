@@ -14,6 +14,7 @@ import { createServerChannelService } from '../../services/airi/channel-server'
 import { createI18nService } from '../../services/airi/i18n'
 import { createAppService, createAppVersionService, createPowerMonitorService, createScreenService, createSystemPreferencesService, createWindowService } from '../../services/electron'
 import { WindowBackdropService } from '../../services/electron/window-backdrop'
+import { createLeagueService } from '../../services/fairy/league'
 import { createLookAtScreenService } from '../../services/fairy/look-at-screen'
 
 export function toggleWindowShow(window?: BrowserWindow | null): void {
@@ -206,6 +207,7 @@ export async function setupBaseWindowElectronInvokes(params: {
   createSystemPreferencesService({ context: params.context, window: params.window })
   WindowBackdropService.install(params.window)
   createLookAtScreenService({ context: params.context, window: params.window })
+  createLeagueService({ context: params.context })
 
   await createI18nService({ context: params.context, window: params.window, i18n: params.i18n })
 

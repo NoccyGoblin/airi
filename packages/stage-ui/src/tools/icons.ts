@@ -19,6 +19,8 @@ export const SKILL_ICONS = {
  */
 export const TOOL_ICONS = {
   weather: 'i-tabler:cloud-rain',
+  /** FAIRY: League of Legends live game and Data Dragon lookups. */
+  game: 'i-tabler:device-gamepad-2',
   widgets: 'i-tabler:layout-grid',
   imageJournal: 'i-tabler:palette',
   computerUse: 'i-tabler:device-desktop',

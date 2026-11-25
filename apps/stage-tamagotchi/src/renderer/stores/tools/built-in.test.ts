@@ -21,6 +21,11 @@ vi.mock('./builtin/image-journal', () => ({
 vi.mock('./builtin/weather', () => ({
   weatherTools: vi.fn(async () => [executableTool('get_weather')]),
 }))
+vi.mock('./builtin/league', () => ({
+  LEAGUE_LIVE_GAME_TOOL_NAME: 'league_live_game',
+  LEAGUE_LOOKUP_TOOL_NAME: 'league_lookup',
+  leagueTools: vi.fn(async () => [executableTool('league_live_game'), executableTool('league_lookup')]),
+}))
 vi.mock('./builtin/widgets', () => ({
   widgetsTools: vi.fn(async () => [executableTool('stage_widgets')]),
 }))
@@ -45,6 +50,8 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:image_journal', defaultActive: false },
       { id: 'tamagotchi:stage_widgets', defaultActive: false },
       { id: 'tamagotchi:get_weather', defaultActive: false },
+      { id: 'tamagotchi:league_live_game', defaultActive: false },
+      { id: 'tamagotchi:league_lookup', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')
