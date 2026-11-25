@@ -9,7 +9,7 @@ import { getGenerationProvider, withReasoning } from '@proj-airi/provider-infere
 import { isCustomProvidersDisabled } from '@proj-airi/stage-shared'
 import { computedAsync, useAsyncState, useIntervalFn } from '@vueuse/core'
 import { listModels } from '@xsai/model'
-import { uniqBy } from 'es-toolkit'
+import { cloneDeep, uniqBy } from 'es-toolkit'
 import { defineStore, getActivePinia } from 'pinia'
 import { computed, onScopeDispose, ref, toRaw, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -737,7 +737,7 @@ export const useProviderStore = defineStore('provider', () => {
   function getVoiceCatalogConfiguration(providerId: string): VoiceCatalogConfiguration {
     return {
       definitionId: getProviderDefinition(providerId).id,
-      config: structuredClone(toRaw(providerConfigStore.getProviderConfig(providerId) ?? {})),
+      config: cloneDeep(toRaw(providerConfigStore.getProviderConfig(providerId) ?? {})),
     }
   }
 

@@ -15,6 +15,7 @@ import { streamWebSpeechAPITranscription } from '@proj-airi/provider-inference'
 import { useLocalStorageManualReset } from '@proj-airi/stage-shared/composables'
 import { refManualReset } from '@vueuse/core'
 import { generateTranscription } from '@xsai/generate-transcription'
+import { cloneDeep } from 'es-toolkit'
 import { defineStore, storeToRefs } from 'pinia'
 import { computed, onScopeDispose, ref, toRaw, watch } from 'vue'
 
@@ -573,7 +574,7 @@ export const useHearingStore = defineStore('hearing-store', () => {
   function createTranscriber(providerId = activeTranscriptionProvider.value, trace: HearingTranscriberTraceOptions = {}): StreamingTranscriber {
     const recognitionSignal = recognition.signal
     recognitionSignal.throwIfAborted()
-    const config = structuredClone(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
+    const config = cloneDeep(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
     const model = resolveActiveTranscriptionModel(activeTranscriptionModel.value, config)
     const threshold = confidenceThreshold.value
     const providerOptions = resolveTranscriptionProviderOptions(config)

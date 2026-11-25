@@ -9,7 +9,7 @@ import { errorMessageFrom } from '@moeru/std'
 import { useLocalStorageManualReset } from '@proj-airi/stage-shared/composables'
 import { refManualReset } from '@vueuse/core'
 import { generateSpeech } from '@xsai/generate-speech'
-import { isEqual } from 'es-toolkit'
+import { cloneDeep, isEqual } from 'es-toolkit'
 import { defineStore, getActivePinia, storeToRefs } from 'pinia'
 import { computed, hasInjectionContext, inject, onScopeDispose, toRaw, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -688,7 +688,7 @@ export const useSpeechStore = defineStore('speech', () => {
       return { ...output, synthesize: async () => null }
     const synthesisSignal = synthesis.signal
     const providerId = selection.provider
-    const config = structuredClone(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
+    const config = cloneDeep(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
     // The catalog of the store is the current one for the selection of the store. For another selection, the voices
     // of that exact selection come first, because the catalog of the provider can belong to another model.
     const isStoreSelection = providerId === activeSpeechProvider.value && (selection.model || '') === activeSpeechModel.value
@@ -696,7 +696,7 @@ export const useSpeechStore = defineStore('speech', () => {
       ? undefined
       : characterVoices.get(characterVoicesKey(providerId, selection.model || undefined))?.find(voice => voice.id === selection.voice_id)
     const selectedVoice = characterVoice ?? availableVoices.value[providerId]?.find(voice => voice.id === selection.voice_id)
-    const voice = selectedVoice ? structuredClone(toRaw(selectedVoice)) : undefined
+    const voice = selectedVoice ? cloneDeep(toRaw(selectedVoice)) : undefined
     const { model, voiceId, streaming, streamingModel } = resolveSpeechSelection(selection, config, () => providersStore.getDefaultModelForProvider(providerId))
     const useSSML = ssmlEnabled.value
     const canUseSSML = ['elevenlabs', 'microsoft-speech', 'azure-speech'].includes(providerId) || (providerId === 'alibaba-cloud-model-studio' && model === 'cosyvoice-v2')
@@ -752,7 +752,7 @@ export const useSpeechStore = defineStore('speech', () => {
     const providerId = selection.provider
     if (!enabled.value || !providerId || providerId === 'speech-noop' || !text.trim())
       return null
-    const config = structuredClone(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
+    const config = cloneDeep(toRaw(providerStore.getProviderConfig(providerId) ?? {}))
     const { model, voiceId, streaming } = resolveSpeechSelection(selection, config, () => providersStore.getDefaultModelForProvider(providerId))
     if (streaming || !model || !voiceId)
       return null
