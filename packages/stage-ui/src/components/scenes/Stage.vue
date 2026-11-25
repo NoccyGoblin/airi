@@ -35,6 +35,7 @@ import StageRenderError from './stage-render-error.vue'
 import { Emotion, EMOTION_EmotionMotionName_value, EMOTION_VRMExpressionName_value, EmotionThinkMotionName } from '../../constants/emotions'
 import { useLive2DStageMotionMagic } from '../../features/motions/live2d/use-live2d-stage-motion-magic'
 import { createAvatarTouchAggregator } from '../../libs/avatar-touch/notify'
+import { emotionFromEmoji } from '../../libs/emoji-emotion'
 import { syncedRoles, usePiniaSynced } from '../../libs/pinia/synced-context'
 import { getSpeechBusContext, speechOutputGetPlaybackState, speechOutputPlaybackStateChangedEvent } from '../../services/speech/bus'
 import { useLlmStreamingControlStore } from '../../stores/ai/chat-llm/streaming-control'
@@ -564,6 +565,12 @@ chatHookCleanups.push(onBeforeSend(async (_message, context) => {
 }))
 
 chatHookCleanups.push(onTokenLiteral(async (literal, context) => {
+  // FAIRY: a mood emoji in the reply sets the avatar's emotion, like an ACT emotion token.
+  if (holdsVoice(context)) {
+    const moodFromEmoji = emotionFromEmoji(literal)
+    if (moodFromEmoji)
+      emotionsQueue.enqueue({ name: moodFromEmoji, intensity: 1 })
+  }
   if (holdsVoice(context) && !speechMuted.value)
     await voice.getSpeech(context)?.write(literal)
 }))
