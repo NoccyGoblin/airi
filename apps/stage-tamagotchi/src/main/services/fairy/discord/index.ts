@@ -245,10 +245,18 @@ export function createDiscordBotService(params: { context: ReturnType<typeof cre
     if (!self || message.author.bot)
       return
     const direct = message.channel.type === ChannelType.DM
-    const names = nameSpellings(settings.character || 'Lumi', settings.nameSpellings)
-    const text = message.content.replaceAll(`<@${self.id}>`, settings.character || 'Lumi').trim()
-    if (!direct && !message.mentions.users.has(self.id) && !callsName(text, names))
+    const name = settings.character || 'Lumi'
+    const names = nameSpellings(name, settings.nameSpellings)
+    // Discord gives a bot its own role with its name. "@Lumi" can pick that role instead of the bot, so it counts too.
+    const ownRoles = message.mentions.roles.filter(role => role.tags?.botId === self.id)
+    let text = message.content.replace(new RegExp(`<@!?${self.id}>`, 'g'), name)
+    for (const role of ownRoles.values())
+      text = text.replaceAll(`<@&${role.id}>`, name)
+    text = text.trim()
+    const mentioned = message.mentions.users.has(self.id) || ownRoles.size > 0
+    if (!direct && !mentioned && !callsName(text, names))
       return
+    log.log(`message for her from ${message.author.username} in ${message.guild?.name ?? 'a direct message'}`)
 
     const command = message.guild ? callCommand(text) : undefined
     if (command && message.guild) {
