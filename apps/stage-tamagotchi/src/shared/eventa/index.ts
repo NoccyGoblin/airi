@@ -283,6 +283,7 @@ export type PcActionRequest
     | { kind: 'open-app', name: string }
     | { kind: 'close-app', name: string }
     | { kind: 'press-keys', keys: string }
+    | { kind: 'type-text', text: string }
     | { kind: 'media', action: 'play-pause' | 'next' | 'previous' | 'volume-up' | 'volume-down' | 'mute' }
 export interface PcActionResult {
   ok: boolean

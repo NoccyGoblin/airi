@@ -17,6 +17,7 @@ import { electronPcAction } from '../../../../shared/eventa'
 export const OPEN_WEBSITE_TOOL_NAME = 'open_website'
 export const OPEN_APP_TOOL_NAME = 'open_app'
 export const CLOSE_APP_TOOL_NAME = 'close_app'
+export const TYPE_TEXT_TOOL_NAME = 'type_text'
 export const PRESS_KEYS_TOOL_NAME = 'press_keys'
 export const MEDIA_CONTROL_TOOL_NAME = 'media_control'
 
@@ -63,6 +64,19 @@ const tools: Promise<Tool>[] = [
     ].join(' '),
     execute: async (input: { name: string }) => act({ kind: 'close-app', name: input.name }),
     parameters: z.object({ name: z.string().describe('The app name, or a word from its window title.') }),
+  }),
+  tool({
+    name: TYPE_TEXT_TOOL_NAME,
+    description: [
+      'Type text into the app in front on the owner\'s PC, where its text cursor is, for example a search box or a chat box.',
+      'It only types and never sends. Press enter with press_keys to send or confirm.',
+      'To message someone on Discord: open_app "Discord", press_keys ctrl+k, type_text the person\'s name, press_keys enter, then type_text the message.',
+      'Before you press enter to send a message to another person, tell the owner who gets it and the exact text, and wait until they say yes.',
+      'Write the message in the owner\'s voice, not as yourself, unless they ask otherwise.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { text: string }) => act({ kind: 'type-text', text: input.text }),
+    parameters: z.object({ text: z.string().max(2000).describe('The text to type.') }),
   }),
   tool({
     name: PRESS_KEYS_TOOL_NAME,

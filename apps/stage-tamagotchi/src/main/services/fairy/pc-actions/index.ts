@@ -11,7 +11,7 @@ import { promisify } from 'node:util'
 import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, clipboard, shell } from 'electron'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 
 import { electronPcAction } from '../../../../shared/eventa'
@@ -38,6 +38,9 @@ const MEDIA_KEYS = {
   'volume-down': 0xE02E,
   'mute': 0xE020,
 } as const
+
+/** A longer text belongs in a document, not in a typed message. */
+const MAX_TYPED_CHARACTERS = 2000
 
 const START_APPS_TTL_MS = 10 * 60_000
 let startApps: { at: number, apps: StartApp[] } | undefined
@@ -125,6 +128,23 @@ async function run(request: PcActionRequest): Promise<string> {
       await focusAppBehindAiri()
       uIOhook.keyTap(UiohookKey[combination.key as keyof typeof UiohookKey], combination.modifiers.map(modifier => UiohookKey[modifier as keyof typeof UiohookKey]))
       return `Pressed ${describeKeyCombination(combination)} in the app in front.`
+    }
+    case 'type-text': {
+      const text = request.text.slice(0, MAX_TYPED_CHARACTERS)
+      if (!text)
+        throw new Error('No text given.')
+      // Pasting types any character on any keyboard layout. The clipboard comes back afterwards.
+      const saved = { text: clipboard.readText(), html: clipboard.readHTML(), image: clipboard.readImage() }
+      await focusAppBehindAiri()
+      clipboard.writeText(text)
+      uIOhook.keyTap(UiohookKey.V, [UiohookKey.Ctrl])
+      await sleep(400)
+      clipboard.clear()
+      if (!saved.image.isEmpty())
+        clipboard.writeImage(saved.image)
+      else if (saved.text || saved.html)
+        clipboard.write({ text: saved.text, html: saved.html })
+      return `Typed ${text.length} characters into the app in front. Nothing was sent.`
     }
     case 'media': {
       uIOhook.keyTap(MEDIA_KEYS[request.action])
