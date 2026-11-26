@@ -2015,7 +2015,8 @@ describe('chat store contract', () => {
       throw new Error('Expected system and user turns')
     expect(composedMessages[0].content).toEqual([
       { type: 'text', text: `${CHAT_FORMAT_RULES}system prompt${composeMemoryPrompt('')}${composeDrawCardPrompt()}` },
-      { type: 'text', text: '\n\nPlugin toolset guidance.' },
+      // FAIRY: the runtime prompt comes first in the supplement, then the toolset guidance.
+      { type: 'text', text: expect.stringMatching(/^\n\nbase\.prompt\.emotion[\s\S]*base\.prompt\.emoji\n\nPlugin toolset guidance\.$/) },
     ])
     expect(composedMessages[1].content[0]).toMatchObject({
       type: 'text',
@@ -2186,14 +2187,11 @@ describe('chat store contract', () => {
     expect(spanEnds(aliceTurn)).toHaveLength(1)
   })
 
-  it('ingests the runtime prompt before composing prompt snapshots', async () => {
-    const runtimePromptContext = {
-      id: 'airi-runtime-prompt-context',
-      contextId: 'system:airi-runtime-prompt',
-      strategy: 'replace-self',
-      text: 'Start every reply with an ACT token.\n\nDo not use emojis.',
-      createdAt: 123,
-    }
+  // ROOT CAUSE (FAIRY):
+  //
+  // The runtime prompt went into a context block at the end of the owner's message. The model read it as text that
+  // the owner pasted, and kept saying so. It belongs to the system prompt, next to the toolset prompt.
+  it('puts the runtime prompt into the system prompt and keeps other contexts in the user turn', async () => {
     const minecraftContext = {
       id: 'minecraft-context',
       contextId: 'system:minecraft',
@@ -2204,10 +2202,8 @@ describe('chat store contract', () => {
     }
     let composedMessages: Turn[] = []
 
-    createRuntimePromptContextMock.mockReturnValue(runtimePromptContext)
     createMinecraftContextMock.mockReturnValue(minecraftContext)
     getContextsSnapshotMock.mockReturnValue({
-      'system:airi-runtime-prompt': [runtimePromptContext],
       'system:minecraft': [minecraftContext],
     })
     llmStreamMock.mockImplementation(async (_model: string, _chatProvider: GenerationProvider, context: Conversation, options: any) => {
@@ -2223,22 +2219,23 @@ describe('chat store contract', () => {
       chatProvider: provider,
     })
 
-    expect(createRuntimePromptContextMock).toHaveBeenCalledWith(expect.stringContaining('base.prompt.emotion'))
-    expect(createRuntimePromptContextMock).toHaveBeenCalledWith(expect.stringContaining('base.prompt.emoji'))
-    expect(ingestContextMessageMock).toHaveBeenCalledTimes(2)
-    expect(ingestContextMessageMock).toHaveBeenNthCalledWith(1, runtimePromptContext)
-    expect(ingestContextMessageMock).toHaveBeenNthCalledWith(2, minecraftContext)
+    expect(createRuntimePromptContextMock).not.toHaveBeenCalled()
+    expect(ingestContextMessageMock).toHaveBeenCalledTimes(1)
+    expect(ingestContextMessageMock).toHaveBeenCalledWith(minecraftContext)
     expect(ingestContextMessageMock.mock.invocationCallOrder[0]).toBeLessThan(
       getContextsSnapshotMock.mock.invocationCallOrder[0],
     )
-    if (composedMessages[1].type !== 'user')
+    const system = composedMessages.find(turn => turn.type === 'system')
+    const systemText = JSON.stringify(system?.content)
+    expect(systemText).toContain('base.prompt.emotion')
+    expect(systemText).toContain('base.prompt.emoji')
+    const user = composedMessages.findLast(turn => turn.type === 'user')
+    if (user?.type !== 'user')
       throw new Error('Expected user turn')
-    expect(composedMessages[1].content[1]).toEqual({
+    expect(JSON.stringify(user.content)).not.toContain('base.prompt.emotion')
+    expect(user.content).toContainEqual({
       type: 'runtime-context',
-      entries: [
-        { source: 'system:airi-runtime-prompt', text: runtimePromptContext.text },
-        { source: 'system:minecraft', text: 'player is near spawn' },
-      ],
+      entries: [{ source: 'system:minecraft', text: 'player is near spawn' }],
     })
   })
 
