@@ -349,6 +349,12 @@ export const electronRoutineAction = defineInvokeEventa<RoutineResult, RoutineRe
 /** FAIRY: a routine that is due now. Only the main window gets it, and it runs the routine in the active chat. */
 export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:fairy:routine-due')
 
+/**
+ * FAIRY: reads a file that the owner dropped on the character, by its path. The window cannot read a OneDrive file
+ * that downloads while it reads, so the main process reads it from disk.
+ */
+export const electronReadDroppedFile = defineInvokeEventa<{ data: string, size: number }, { path: string }>('eventa:invoke:electron:fairy:read-dropped-file')
+
 /** FAIRY: turns wander mode on or off, or reads it when `enabled` is missing. */
 export const electronWanderMode = defineInvokeEventa<{ enabled: boolean }, { enabled?: boolean } | undefined>('eventa:invoke:electron:fairy:wander-mode')
 

@@ -42,6 +42,7 @@ import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
 import { createDiscordBotService } from '../../../services/fairy/discord'
+import { createFileDropService } from '../../../services/fairy/file-drop'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
@@ -104,6 +105,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createDiscordBotService({ context }))
   // FAIRY: wander mode floats the character's window around the screen.
   onWindowClosed(params.window, createWanderService({ context, window: params.window }))
+  // FAIRY: reads files that the owner drops on the character.
+  createFileDropService({ context })
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 
