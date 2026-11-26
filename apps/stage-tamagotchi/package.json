@@ -50,11 +50,13 @@
     "electron-click-drag-plugin": "catalog:",
     "electron-updater": "^6.8.9",
     "kokoro-js": "catalog:",
+    "mammoth": "catalog:",
     "node-macos-disclaim": "catalog:",
     "node-pty": "catalog:",
     "opusscript": "catalog:",
     "prism-media": "catalog:",
-    "uiohook-napi": "catalog:"
+    "uiohook-napi": "catalog:",
+    "unpdf": "catalog:"
   },
   "optionalDependencies": {
     "@node-macos-disclaim/darwin-arm64": "catalog:",

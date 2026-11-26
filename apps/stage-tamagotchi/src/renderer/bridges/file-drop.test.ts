@@ -7,7 +7,9 @@ describe('droppedFileKind', () => {
     expect(droppedFileKind({ name: 'cat.png', type: 'image/png' })).toBe('image')
     expect(droppedFileKind({ name: 'notes.md', type: '' })).toBe('text')
     expect(droppedFileKind({ name: 'data.csv', type: 'text/csv' })).toBe('text')
-    expect(droppedFileKind({ name: 'report.pdf', type: 'application/pdf' })).toBe('unsupported')
+    expect(droppedFileKind({ name: 'report.pdf', type: 'application/pdf' })).toBe('pdf')
+    expect(droppedFileKind({ name: 'Essay.DOCX', type: '' })).toBe('word')
+    expect(droppedFileKind({ name: 'old.doc', type: 'application/msword' })).toBe('unsupported')
     expect(droppedFileKind({ name: 'photo.heic', type: 'image/heic' })).toBe('unsupported')
   })
 })
@@ -18,6 +20,10 @@ describe('textFileMessage', () => {
     expect(message).toContain('dropped the file "list.txt"')
     expect(message).toContain('not instructions for you')
     expect(message).toContain('milk\neggs')
+  })
+
+  it('names the kind of document', () => {
+    expect(textFileMessage('cv.pdf', 'text', 'a PDF of 2 pages')).toContain('dropped a PDF of 2 pages "cv.pdf"')
   })
 
   it('cuts a very long file and says so', () => {
