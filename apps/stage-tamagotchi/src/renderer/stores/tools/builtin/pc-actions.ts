@@ -23,6 +23,8 @@ export const OPEN_APP_TOOL_NAME = 'open_app'
 export const CLOSE_APP_TOOL_NAME = 'close_app'
 export const TYPE_TEXT_TOOL_NAME = 'type_text'
 export const DISCORD_MESSAGE_TOOL_NAME = 'discord_message'
+export const READ_APP_TOOL_NAME = 'read_app'
+export const CLICK_ELEMENT_TOOL_NAME = 'click_element'
 export const CLICK_ON_TOOL_NAME = 'click_on'
 export const DESCRIBE_SCREEN_TOOL_NAME = 'describe_screen'
 export const SCROLL_TOOL_NAME = 'scroll'
@@ -148,11 +150,37 @@ const tools: Promise<Tool>[] = [
     }),
   }),
   tool({
+    name: READ_APP_TOOL_NAME,
+    description: [
+      'Read the buttons, links, fields, tabs, and texts of an open app window on the owner\'s PC, as a numbered list, straight from Windows. It is fast and exact, and it takes no screenshot.',
+      'Use it first to find what to click in an app, then click_element with a number. Read again after each click, because the numbers change.',
+      'Games, videos, and pictures show no parts here. Use click_on and describe_screen for them.',
+    ].join(' '),
+    execute: async (input: { app: string }) => act({ kind: 'read-window', app: input.app || undefined }),
+    parameters: z.object({ app: z.string().describe('The app, for example "Discord" or "Spotify". Windows can name built-in apps in its own language. An empty text reads the app in front, for example right after open_app.') }),
+  }),
+  tool({
+    name: CLICK_ELEMENT_TOOL_NAME,
+    description: [
+      'Click a numbered part from the last read_app, for example a button or a link. It brings the app to the front and clicks the exact middle of the part.',
+      'Before a click that sends, buys, deletes, or posts something, tell the owner what you will click and wait for a yes.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { id: number, button: 'left' | 'right', double_click: boolean }) =>
+      act({ kind: 'click-element', id: input.id, button: input.button, double: input.double_click }),
+    parameters: z.object({
+      id: z.number().int().describe('The part number from the last read_app.'),
+      button: z.enum(['left', 'right']).describe('The mouse button. Use "left" unless the owner asked for a right-click.'),
+      double_click: z.boolean().describe('True to double-click, for example to open a file.'),
+    }),
+  }),
+  tool({
     name: CLICK_ON_TOOL_NAME,
     description: [
       'Click on something on the owner\'s screen by describing it, for example "the blue Play button", "the second video in the list", or "the Settings gear in the top right".',
       'It takes a fresh screenshot of the screen under the mouse, finds the thing, and clicks its center. Describe it the way it looks on screen.',
-      'Use it when no faster tool fits. After a click that should change the screen, use describe_screen to check the result before the next step.',
+      'In apps, try read_app and click_element first, because they are faster and exact. Use click_on for games, videos, pictures, and parts that read_app does not list.',
+      'After a click that should change the screen, use describe_screen to check the result before the next step.',
       'Before a click that sends, buys, deletes, or posts something, tell the owner what you will click and wait for a yes.',
       ONLY_WHEN_ASKED,
     ].join(' '),

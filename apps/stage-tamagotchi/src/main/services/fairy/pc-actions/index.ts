@@ -4,6 +4,7 @@ import type { PcActionRequest, PcActionResult, PcCapture } from '../../../../sha
 import type { OpenWindow, StartApp } from './apps'
 import type { KeyCombination } from './keys'
 import type { PhysicalRect } from './mouse'
+import type { UiElement } from './ui-tree'
 
 import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
@@ -24,6 +25,7 @@ import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { chatKindOf } from './chats'
 import { describeKeyCombination, parseKeyCombination } from './keys'
 import { clickScript, screenPointOf, scrollScript } from './mouse'
+import { centerOf, describeUiTree, parseUiTree, uiTreeScript } from './ui-tree'
 
 /**
  * FAIRY: fast, generic actions on the PC that the owner asks the character for, such as opening a website or an app,
@@ -209,6 +211,51 @@ async function frontAppForInput(): Promise<{ processId: number, processName: str
   return front
 }
 
+/** The parts of the last app window that the character read, so a click by number finds its place. */
+let lastRead: { processId: number, app: string, elements: UiElement[] } | undefined
+
+async function uiTreeOf(processId: number) {
+  const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(uiTreeScript(processId), 'utf16le').toString('base64')], { timeout: 20_000, windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
+  return parseUiTree(stdout)
+}
+
+/** Reads the buttons, links, fields, and texts of a named app's window, or of the app in front. */
+async function readWindow(name?: string) {
+  let target: { processId: number, app: string }
+  if (name?.trim()) {
+    const ownProcessIds = app.getAppMetrics().map(metric => metric.pid)
+    const window = matchOpenWindows(await listOpenWindows(), name, ownProcessIds).find(candidate => candidate.title)
+    if (!window)
+      throw new Error(`No open window matches "${name}". Open it with open_app first.`)
+    // Built-in Windows apps all name "Windows Operating System" as their product. Their title names them better.
+    const builtIn = /operating system/i.test(window.product)
+    target = { processId: window.id, app: (builtIn ? window.title : window.product) || window.processName }
+  }
+  else {
+    const front = await frontAppForInput()
+    target = { processId: front.processId, app: front.processName }
+  }
+  let tree = await uiTreeOf(target.processId)
+  if (!tree.elements.length) {
+    // NOTICE:
+    // Chromium and Electron apps, for example Discord, build their accessibility tree only after the first UI
+    // Automation request, so the first read is empty. Source: tried by hand on Discord, where the second read lists all.
+    // Remove when the first read of these apps lists their parts.
+    await sleep(1000)
+    tree = await uiTreeOf(target.processId)
+  }
+  lastRead = { ...target, elements: tree.elements }
+  return describeUiTree(target.app, tree.title, tree.elements)
+}
+
+/** Refuses a click on a spot that one of AIRI's own windows covers. */
+function assertNotOnAiri(point: { x: number, y: number }) {
+  const dip = screen.screenToDipPoint(point)
+  const ownWindow = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.isVisible() && contains(window.getBounds(), dip))
+  if (ownWindow)
+    throw new Error('AIRI\'s own window covers that spot, so nothing was clicked. Ask the owner to move the character or the chat.')
+}
+
 /** Apps need a moment after a key before the next key reaches the right place. */
 const KEY_SETTLE_MS = 300
 
@@ -335,13 +382,27 @@ async function run(request: PcActionRequest): Promise<string> {
         throw new Error('That screenshot is too old. Take a new one and point again.')
       const point = screenPointOf({ x: request.x, y: request.y }, capture.image, capture.display)
       // AIRI's windows were hidden in the screenshot, but they are on screen. A click there would hit AIRI.
-      const dip = screen.screenToDipPoint(point)
-      const ownWindow = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.isVisible() && contains(window.getBounds(), dip))
-      if (ownWindow)
-        throw new Error('AIRI\'s own window covers that spot, so nothing was clicked. Ask the owner to move the character or the chat.')
+      assertNotOnAiri(point)
       await runPowerShell(clickScript(point, request.button, request.double))
       await sleep(KEY_SETTLE_MS)
       return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} at (${request.x}, ${request.y}) of the screenshot.`
+    }
+    case 'read-window':
+      return await readWindow(request.app)
+    case 'click-element': {
+      const element = lastRead?.elements.find(candidate => candidate.id === Math.trunc(request.id))
+      if (!lastRead || !element)
+        throw new Error(`There is no part [${request.id}]. Read the app with read_app first for the current numbers.`)
+      if (!element.enabled)
+        throw new Error(`[${element.id}] ${element.name} is disabled, so nothing was clicked.`)
+      // The window can be behind others. It comes to the front first, so the click lands on it.
+      await runPowerShell(FOCUS_SCRIPT.replace('__PID__', String(lastRead.processId)))
+      await sleep(300)
+      const point = centerOf(element)
+      assertNotOnAiri(point)
+      await runPowerShell(clickScript(point, request.button, request.double))
+      await sleep(KEY_SETTLE_MS)
+      return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} [${element.id}] ${element.type.toLowerCase()} "${element.name}" in ${lastRead.app}. The numbers change now. Read the app again before the next click.`
     }
     case 'scroll': {
       await frontAppForInput()
