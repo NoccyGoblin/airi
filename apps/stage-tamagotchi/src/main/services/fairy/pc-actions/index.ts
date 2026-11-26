@@ -6,7 +6,6 @@ import type { KeyCombination } from './keys'
 import type { PhysicalRect } from './mouse'
 import type { UiElement } from './ui-tree'
 
-import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -24,7 +23,8 @@ import { captureWithoutAiri } from '../look-at-screen'
 import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { chatKindOf } from './chats'
 import { describeKeyCombination, parseKeyCombination } from './keys'
-import { clickScript, screenPointOf, scrollScript } from './mouse'
+import { clickScript, screenPointOf, scrollScript, windowAtScript } from './mouse'
+import { PowerShellHost } from './powershell-host'
 import { centerOf, describeUiTree, parseUiTree, uiTreeScript } from './ui-tree'
 
 /**
@@ -35,6 +35,8 @@ import { centerOf, describeUiTree, parseUiTree, uiTreeScript } from './ui-tree'
 
 const execFileAsync = promisify(execFile)
 const log = useLogg('fairy-pc-actions').useGlobalConfig()
+/** One PowerShell for all actions, so each action skips the PowerShell start. */
+const powerShell = new PowerShellHost()
 
 const BROWSERS = { chrome: 'chrome', edge: 'msedge', firefox: 'firefox', brave: 'brave', opera: 'opera' } as const
 
@@ -104,7 +106,7 @@ $process = Get-Process -Id $id
 /** The process and title of the window in front, or nothing when it cannot be read. */
 async function foregroundWindow(): Promise<{ processId: number, processName: string, title: string } | undefined> {
   try {
-    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(FOREGROUND_SCRIPT, 'utf16le').toString('base64')], { timeout: 15_000, windowsHide: true })
+    const stdout = await powerShell.run(FOREGROUND_SCRIPT)
     return JSON.parse(stdout) as { processId: number, processName: string, title: string }
   }
   catch {
@@ -114,7 +116,7 @@ async function foregroundWindow(): Promise<{ processId: number, processName: str
 
 /** Every process that has a window now. */
 async function listOpenWindows(): Promise<OpenWindow[]> {
-  const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object Id, ProcessName, MainWindowTitle, Product | ConvertTo-Json -Compress'], { timeout: 15_000, windowsHide: true, maxBuffer: 8 * 1024 * 1024 })
+  const stdout = await powerShell.run('Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object Id, ProcessName, MainWindowTitle, Product | ConvertTo-Json -Compress')
   if (!stdout.trim())
     return []
   const raw = JSON.parse(stdout) as RawWindow | RawWindow[]
@@ -176,7 +178,7 @@ async function bringToFront(name: string, waitMs = WINDOW_WAIT_MS): Promise<bool
   do {
     const window = matchOpenWindows(await listOpenWindows(), name, ownProcessIds).find(candidate => candidate.title && !/updat/i.test(candidate.title))
     if (window) {
-      await runPowerShell(FOCUS_SCRIPT.replace('__PID__', String(window.id)))
+      await powerShell.run(FOCUS_SCRIPT.replace('__PID__', String(window.id)))
       // The app needs a moment before it takes keys.
       await sleep(600)
       return true
@@ -184,11 +186,6 @@ async function bringToFront(name: string, waitMs = WINDOW_WAIT_MS): Promise<bool
     await sleep(WINDOW_POLL_MS)
   } while (Date.now() < deadline)
   return false
-}
-
-/** Runs a PowerShell script from base64, so no value inside it can break out of its quotes. */
-async function runPowerShell(script: string) {
-  await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { timeout: 15_000, windowsHide: true })
 }
 
 /**
@@ -211,12 +208,16 @@ async function frontAppForInput(): Promise<{ processId: number, processName: str
   return front
 }
 
+/** A pause between clicks in one call, so the app keeps up. */
+const CLICK_SETTLE_MS = 150
+/** The most clicks in one call. */
+const MAX_CLICKS = 20
+
 /** The parts of the last app window that the character read, so a click by number finds its place. */
 let lastRead: { processId: number, app: string, elements: UiElement[] } | undefined
 
 async function uiTreeOf(processId: number) {
-  const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(uiTreeScript(processId), 'utf16le').toString('base64')], { timeout: 20_000, windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
-  return parseUiTree(stdout)
+  return parseUiTree(await powerShell.run(uiTreeScript(processId)))
 }
 
 /** Reads the buttons, links, fields, and texts of a named app's window, or of the app in front. */
@@ -233,8 +234,14 @@ async function readWindow(name?: string) {
   }
   else {
     const front = await frontAppForInput()
-    target = { processId: front.processId, app: front.processName }
+    // Built-in Windows apps run inside ApplicationFrameHost. Their title names them better.
+    target = { processId: front.processId, app: (front.processName === 'ApplicationFrameHost' && front.title) || front.processName }
   }
+  return await readTarget(target)
+}
+
+/** Reads one window and keeps its parts for the next click. */
+async function readTarget(target: { processId: number, app: string }) {
   let tree = await uiTreeOf(target.processId)
   if (!tree.elements.length) {
     // NOTICE:
@@ -328,7 +335,7 @@ async function run(request: PcActionRequest): Promise<string> {
         await shell.openExternal(url)
         return `Opened ${url} in the default browser.`
       }
-      await runPowerShell(`Start-Process -FilePath '${browser}' -ArgumentList '${url.replaceAll('\'', '\'\'')}'`)
+      await powerShell.run(`Start-Process -FilePath '${browser}' -ArgumentList '${url.replaceAll('\'', '\'\'')}'`)
       return `Opened ${url} in ${request.browser}.`
     }
     case 'open-app':
@@ -341,7 +348,7 @@ async function run(request: PcActionRequest): Promise<string> {
       if (!windows.length)
         throw new Error(`No open app matches "${request.name}". Windows, AIRI, and the Claude app cannot be closed.`)
       // CloseMainWindow asks the app to close, like its close button, so an app with unsaved work can still ask.
-      await runPowerShell(`Get-Process -Id ${windows.map(window => window.id).join(',')} -ErrorAction SilentlyContinue | ForEach-Object { [void]$_.CloseMainWindow() }`)
+      await powerShell.run(`Get-Process -Id ${windows.map(window => window.id).join(',')} -ErrorAction SilentlyContinue | ForEach-Object { [void]$_.CloseMainWindow() }`)
       const [first] = windows
       return `Asked ${first.product || first.processName} to close (${windows.length} window${windows.length > 1 ? 's' : ''}). It can still ask to save.`
     }
@@ -383,31 +390,47 @@ async function run(request: PcActionRequest): Promise<string> {
       const point = screenPointOf({ x: request.x, y: request.y }, capture.image, capture.display)
       // AIRI's windows were hidden in the screenshot, but they are on screen. A click there would hit AIRI.
       assertNotOnAiri(point)
-      await runPowerShell(clickScript(point, request.button, request.double))
+      await powerShell.run(clickScript(point, request.button, request.double))
       await sleep(KEY_SETTLE_MS)
       return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} at (${request.x}, ${request.y}) of the screenshot.`
     }
     case 'read-window':
       return await readWindow(request.app)
     case 'click-element': {
-      const element = lastRead?.elements.find(candidate => candidate.id === Math.trunc(request.id))
-      if (!lastRead || !element)
-        throw new Error(`There is no part [${request.id}]. Read the app with read_app first for the current numbers.`)
-      if (!element.enabled)
-        throw new Error(`[${element.id}] ${element.name} is disabled, so nothing was clicked.`)
-      // The window can be behind others. It comes to the front first, so the click lands on it.
-      await runPowerShell(FOCUS_SCRIPT.replace('__PID__', String(lastRead.processId)))
+      const read = lastRead
+      if (!read)
+        throw new Error('Read the app with read_app first.')
+      // Every part is checked before the first click, so a wrong number never leaves half the clicks done.
+      const elements = request.ids.slice(0, MAX_CLICKS).map((id) => {
+        const element = read.elements.find(candidate => candidate.id === Math.trunc(id))
+        if (!element)
+          throw new Error(`There is no part [${id}], so nothing was clicked. Read the app again for the current numbers.`)
+        if (!element.enabled)
+          throw new Error(`[${element.id}] ${element.name} is disabled, so nothing was clicked.`)
+        return element
+      })
+      // The window can be behind others. It comes to the front first, so the clicks land on it.
+      await powerShell.run(FOCUS_SCRIPT.replace('__PID__', String(read.processId)))
       await sleep(300)
-      const point = centerOf(element)
-      assertNotOnAiri(point)
-      await runPowerShell(clickScript(point, request.button, request.double))
-      await sleep(KEY_SETTLE_MS)
-      return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} [${element.id}] ${element.type.toLowerCase()} "${element.name}" in ${lastRead.app}. The numbers change now. Read the app again before the next click.`
+      // With the window in front, only a window on top of it covers a part, for example the character.
+      const ownProcessIds = new Set(app.getAppMetrics().map(metric => metric.pid))
+      for (const element of elements) {
+        const owner = Number((await powerShell.run(windowAtScript(centerOf(element)))).trim())
+        if (ownProcessIds.has(owner))
+          throw new Error(`AIRI's own window covers [${element.id}] "${element.name}", so nothing was clicked. Ask the owner to move the character or the chat.`)
+      }
+      for (const element of elements) {
+        await powerShell.run(clickScript(centerOf(element), request.button, request.double))
+        await sleep(CLICK_SETTLE_MS)
+      }
+      const verb = request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'
+      const clicked = elements.map(element => `[${element.id}] "${element.name}"`).join(', ')
+      return `${verb} ${clicked} in ${read.app}. The window now, with new numbers:\n\n${await readTarget(read)}`
     }
     case 'scroll': {
       await frontAppForInput()
       const notches = Math.max(1, Math.min(20, Math.round(request.notches)))
-      await runPowerShell(scrollScript(request.direction === 'up' ? notches : -notches))
+      await powerShell.run(scrollScript(request.direction === 'up' ? notches : -notches))
       return `Scrolled ${request.direction} by ${notches} notch${notches > 1 ? 'es' : ''} where the pointer is.`
     }
     case 'media': {
@@ -424,6 +447,9 @@ async function run(request: PcActionRequest): Promise<string> {
 const acting = new Mutex()
 
 export function createPcActionsService(params: { context: ReturnType<typeof createContext>['context'] }) {
+  // The first script starts PowerShell and loads UI Automation, which takes seconds. It happens now, not at the first ask.
+  void powerShell.run('Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes').catch(error => log.warn(`PowerShell warm-up failed: ${errorMessageFrom(error)}`))
+
   defineInvokeHandler(params.context, electronPcCapture, () => acting.runExclusive(captureForPointing))
   defineInvokeHandler(params.context, electronPcAction, async (request): Promise<PcActionResult> => {
     try {

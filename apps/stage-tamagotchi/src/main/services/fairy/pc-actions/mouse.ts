@@ -49,6 +49,29 @@ export function clickScript(point: { x: number, y: number }, button: 'left' | 'r
   ].join('\n')
 }
 
+/**
+ * A PowerShell script that prints the process id of the top window at a physical screen point. Click-through windows
+ * do not count, because a click goes past them.
+ */
+export function windowAtScript(point: { x: number, y: number }) {
+  return `
+Add-Type -Namespace Fairy -Name Hit -MemberDefinition @'
+[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+[DllImport("user32.dll")] public static extern System.IntPtr WindowFromPoint(POINT point);
+[DllImport("user32.dll")] public static extern System.IntPtr GetAncestor(System.IntPtr hWnd, int flags);
+[DllImport("user32.dll")] public static extern int GetWindowThreadProcessId(System.IntPtr hWnd, out int processId);
+public struct POINT { public int X; public int Y; }
+'@
+[void][Fairy.Hit]::SetProcessDPIAware()
+$point = New-Object Fairy.Hit+POINT
+$point.X = ${Math.round(point.x)}
+$point.Y = ${Math.round(point.y)}
+$id = 0
+[void][Fairy.Hit]::GetWindowThreadProcessId([Fairy.Hit]::GetAncestor([Fairy.Hit]::WindowFromPoint($point), 2), [ref]$id)
+$id
+`
+}
+
 /** A PowerShell script that turns the mouse wheel where the pointer is. Positive notches scroll up. */
 export function scrollScript(notches: number) {
   return `${MOUSE_TYPE}\n[Fairy.Mouse]::mouse_event(${MOUSE_WHEEL}, 0, 0, ${Math.round(notches) * WHEEL_NOTCH}, 0)`

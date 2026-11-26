@@ -289,7 +289,7 @@ export type PcActionRequest
     | { kind: 'click', captureId: string, x: number, y: number, button: 'left' | 'right', double: boolean }
     | { kind: 'scroll', direction: 'up' | 'down', notches: number }
     | { kind: 'read-window', app?: string }
-    | { kind: 'click-element', id: number, button: 'left' | 'right', double: boolean }
+    | { kind: 'click-element', ids: number[], button: 'left' | 'right', double: boolean }
 export interface PcActionResult {
   ok: boolean
   message: string

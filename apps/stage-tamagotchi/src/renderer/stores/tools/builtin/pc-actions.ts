@@ -153,7 +153,7 @@ const tools: Promise<Tool>[] = [
     name: READ_APP_TOOL_NAME,
     description: [
       'Read the buttons, links, fields, tabs, and texts of an open app window on the owner\'s PC, as a numbered list, straight from Windows. It is fast and exact, and it takes no screenshot.',
-      'Use it first to find what to click in an app, then click_element with a number. Read again after each click, because the numbers change.',
+      'Use it first to find what to click in an app, then click_element with the numbers. click_element returns the window again, so read_app is only for the first look.',
       'Games, videos, and pictures show no parts here. Use click_on and describe_screen for them.',
     ].join(' '),
     execute: async (input: { app: string }) => act({ kind: 'read-window', app: input.app || undefined }),
@@ -162,14 +162,16 @@ const tools: Promise<Tool>[] = [
   tool({
     name: CLICK_ELEMENT_TOOL_NAME,
     description: [
-      'Click a numbered part from the last read_app, for example a button or a link. It brings the app to the front and clicks the exact middle of the part.',
+      'Click numbered parts from the last read_app, for example a button or a link. It brings the app to the front and clicks the exact middle of each part, in order.',
+      'Give several numbers in one call when the clicks do not change the window, for example calculator keys or boxes in a form. One call is much faster than many.',
+      'It returns the window after the clicks, with new numbers, so you need no read_app before the next click.',
       'Before a click that sends, buys, deletes, or posts something, tell the owner what you will click and wait for a yes.',
       ONLY_WHEN_ASKED,
     ].join(' '),
-    execute: async (input: { id: number, button: 'left' | 'right', double_click: boolean }) =>
-      act({ kind: 'click-element', id: input.id, button: input.button, double: input.double_click }),
+    execute: async (input: { ids: number[], button: 'left' | 'right', double_click: boolean }) =>
+      act({ kind: 'click-element', ids: input.ids, button: input.button, double: input.double_click }),
     parameters: z.object({
-      id: z.number().int().describe('The part number from the last read_app.'),
+      ids: z.array(z.number().int()).min(1).max(20).describe('The part numbers from the last read, in click order.'),
       button: z.enum(['left', 'right']).describe('The mouse button. Use "left" unless the owner asked for a right-click.'),
       double_click: z.boolean().describe('True to double-click, for example to open a file.'),
     }),
