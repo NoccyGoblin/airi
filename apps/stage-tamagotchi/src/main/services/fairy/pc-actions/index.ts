@@ -74,6 +74,49 @@ interface RawWindow {
   Product?: string
 }
 
+const WINDOW_WAIT_MS = 20_000
+const WINDOW_POLL_MS = 700
+
+// NOTICE:
+// Windows only lets the foreground app move another window to the front. A tap of Alt before SetForegroundWindow
+// lifts that lock for this call. Source: the SetForegroundWindow remarks in the Win32 docs.
+// Remove when a supported API brings an app forward from a background process.
+const FOCUS_SCRIPT = `
+Add-Type -Namespace Fairy -Name Win -MemberDefinition @'
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr hWnd);
+[DllImport("user32.dll")] public static extern bool ShowWindow(System.IntPtr hWnd, int nCmdShow);
+[DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+'@
+$handle = (Get-Process -Id __PID__).MainWindowHandle
+[void][Fairy.Win]::ShowWindow($handle, 9)
+[Fairy.Win]::keybd_event(0x12, 0, 0, 0)
+[Fairy.Win]::keybd_event(0x12, 0, 2, 0)
+[void][Fairy.Win]::SetForegroundWindow($handle)
+`
+
+/**
+ * Waits until an app shows its window, then moves that window to the front, so keys and text reach it.
+ * A splash screen such as "Discord Updater" does not count as the window.
+ *
+ * Returns:
+ * - Whether a window came to the front
+ */
+async function bringToFront(name: string): Promise<boolean> {
+  const ownProcessIds = app.getAppMetrics().map(metric => metric.pid)
+  const deadline = Date.now() + WINDOW_WAIT_MS
+  while (Date.now() < deadline) {
+    const window = matchOpenWindows(await listOpenWindows(), name, ownProcessIds).find(candidate => candidate.title && !/updat/i.test(candidate.title))
+    if (window) {
+      await runPowerShell(FOCUS_SCRIPT.replace('__PID__', String(window.id)))
+      // The app needs a moment before it takes keys.
+      await sleep(600)
+      return true
+    }
+    await sleep(WINDOW_POLL_MS)
+  }
+  return false
+}
+
 /** Runs a PowerShell script from base64, so no value inside it can break out of its quotes. */
 async function runPowerShell(script: string) {
   await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { timeout: 15_000, windowsHide: true })
@@ -104,14 +147,15 @@ async function run(request: PcActionRequest): Promise<string> {
       const matches = matchStartApps(await listStartApps(), request.name)
       if (!matches.length)
         throw new Error(`No installed app matches "${request.name}".`)
-      const [app] = matches
-      await execFileAsync('explorer.exe', [`shell:AppsFolder\\${app.appId}`], { windowsHide: true }).catch((error: { code?: number }) => {
+      const [startApp] = matches
+      await execFileAsync('explorer.exe', [`shell:AppsFolder\\${startApp.appId}`], { windowsHide: true }).catch((error: { code?: number }) => {
         // explorer.exe exits with 1 even when it opens the app.
         if (error.code !== 1)
           throw error
       })
       const others = matches.slice(1, 4).map(other => other.name)
-      return `Opened ${app.name}.${others.length ? ` Other matches: ${others.join(', ')}.` : ''}`
+      const front = await bringToFront(startApp.name)
+      return `Opened ${startApp.name}${front ? ' and brought it to the front, ready for keys and text' : ', but its window did not show up within 20 seconds'}.${others.length ? ` Other matches: ${others.join(', ')}.` : ''}`
     }
     case 'close-app': {
       const ownProcessIds = app.getAppMetrics().map(metric => metric.pid)
