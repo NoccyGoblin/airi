@@ -71,6 +71,7 @@ import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-ca
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
 import { setupLiveModeBridge } from './bridges/live-mode'
 import { setupPhoneChatBridge } from './bridges/phone-chat'
+import { setupRoutinesBridge } from './bridges/routines'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
 import { useDevicePermissions } from './composables/use-device-permissions'
 import { useLanguage } from './composables/use-language'
@@ -316,6 +317,8 @@ function createFullStageRuntime() {
   setupPhoneChatBridge(context.value)
   // FAIRY: only the main window gets the live mode beat, so only it runs live mode.
   setupLiveModeBridge(context.value)
+  // FAIRY: only the main window gets due routines, so only it runs them.
+  setupRoutinesBridge(context.value)
 
   return {
     async initialize() {

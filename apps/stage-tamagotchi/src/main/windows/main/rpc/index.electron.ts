@@ -44,6 +44,7 @@ import { createAutoUpdaterService } from '../../../services/electron'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
+import { createRoutineScheduler } from '../../../services/fairy/routines'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
 
 export async function setupMainWindowElectronInvokes(params: {
@@ -92,6 +93,8 @@ export async function setupMainWindowElectronInvokes(params: {
   void startLocalVoiceServer()
   // FAIRY: only the main window runs live mode.
   onWindowClosed(params.window, createLiveModeService({ context, window: params.window }))
+  // FAIRY: only the main window runs routines.
+  onWindowClosed(params.window, createRoutineScheduler({ context }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

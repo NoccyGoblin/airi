@@ -21,6 +21,7 @@ import { createLookAtScreenService } from '../../services/fairy/look-at-screen'
 import { createMemoryFilesService } from '../../services/fairy/memory-files'
 import { createPcActionsService } from '../../services/fairy/pc-actions'
 import { createPhoneInfoService } from '../../services/fairy/phone'
+import { createRoutinesService } from '../../services/fairy/routines'
 import { createWebKnowledgeService } from '../../services/fairy/web-knowledge'
 
 export function toggleWindowShow(window?: BrowserWindow | null): void {
@@ -219,6 +220,7 @@ export async function setupBaseWindowElectronInvokes(params: {
   createLiveModeFrameService({ context: params.context })
   createPcActionsService({ context: params.context })
   createFileActionsService({ context: params.context })
+  createRoutinesService({ context: params.context })
   createMemoryFilesService({ context: params.context, onClosed: stop => params.window.once('closed', stop) })
 
   await createI18nService({ context: params.context, window: params.window, i18n: params.i18n })

@@ -10,6 +10,7 @@ import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
 import { CLICK_ON_TOOL_NAME, CLOSE_APP_TOOL_NAME, DESCRIBE_SCREEN_TOOL_NAME, DISCORD_MESSAGE_TOOL_NAME, MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, pcActionTools, PRESS_KEYS_TOOL_NAME, SCROLL_TOOL_NAME, TYPE_TEXT_TOOL_NAME } from './builtin/pc-actions'
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
+import { CREATE_ROUTINE_TOOL_NAME, DELETE_ROUTINE_TOOL_NAME, LIST_ROUTINES_TOOL_NAME, PAUSE_ROUTINE_TOOL_NAME, routineTools } from './builtin/routines'
 import { weatherTools } from './builtin/weather'
 import { WEB_SEARCH_TOOL_NAME, webKnowledgeTools, WIKIPEDIA_TOOL_NAME } from './builtin/web-knowledge'
 import { widgetsTools } from './builtin/widgets'
@@ -24,6 +25,11 @@ export const widgetToolReferences = [
   { name: SET_REMINDER_TOOL_NAME },
   { name: LIST_REMINDERS_TOOL_NAME },
   { name: CANCEL_REMINDER_TOOL_NAME },
+  // FAIRY: routines that run by themselves at set times.
+  { name: CREATE_ROUTINE_TOOL_NAME },
+  { name: LIST_ROUTINES_TOOL_NAME },
+  { name: DELETE_ROUTINE_TOOL_NAME },
+  { name: PAUSE_ROUTINE_TOOL_NAME },
   // FAIRY: facts and current information.
   { name: WIKIPEDIA_TOOL_NAME },
   { name: WEB_SEARCH_TOOL_NAME },
@@ -69,6 +75,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       weatherTools().then(tools => ({ tools, icon: TOOL_ICONS.weather })),
       leagueTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
       reminderTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
+      routineTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
       webKnowledgeTools().then(tools => ({ tools, icon: TOOL_ICONS.search })),
       pcActionTools().then(tools => ({ tools, icon: TOOL_ICONS.computerUse })),
       fileTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),

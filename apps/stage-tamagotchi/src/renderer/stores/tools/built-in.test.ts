@@ -32,6 +32,13 @@ vi.mock('./builtin/reminders', () => ({
   CANCEL_REMINDER_TOOL_NAME: 'cancel_reminder',
   reminderTools: vi.fn(async () => [executableTool('set_reminder'), executableTool('list_reminders'), executableTool('cancel_reminder')]),
 }))
+vi.mock('./builtin/routines', () => ({
+  CREATE_ROUTINE_TOOL_NAME: 'create_routine',
+  LIST_ROUTINES_TOOL_NAME: 'list_routines',
+  DELETE_ROUTINE_TOOL_NAME: 'delete_routine',
+  PAUSE_ROUTINE_TOOL_NAME: 'pause_routine',
+  routineTools: vi.fn(async () => ['create_routine', 'list_routines', 'delete_routine', 'pause_routine'].map(executableTool)),
+}))
 vi.mock('./builtin/web-knowledge', () => ({
   WIKIPEDIA_TOOL_NAME: 'wikipedia',
   WEB_SEARCH_TOOL_NAME: 'web_search',
@@ -87,6 +94,10 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:set_reminder', defaultActive: false },
       { id: 'tamagotchi:list_reminders', defaultActive: false },
       { id: 'tamagotchi:cancel_reminder', defaultActive: false },
+      { id: 'tamagotchi:create_routine', defaultActive: false },
+      { id: 'tamagotchi:list_routines', defaultActive: false },
+      { id: 'tamagotchi:delete_routine', defaultActive: false },
+      { id: 'tamagotchi:pause_routine', defaultActive: false },
       { id: 'tamagotchi:wikipedia', defaultActive: false },
       { id: 'tamagotchi:web_search', defaultActive: false },
       { id: 'tamagotchi:open_website', defaultActive: false },

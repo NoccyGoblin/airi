@@ -316,6 +316,34 @@ export interface FileActionResult {
 }
 export const electronFileAction = defineInvokeEventa<FileActionResult, FileActionRequest>('eventa:invoke:electron:fairy:file-action')
 
+/** FAIRY: a routine of the character: something it does by itself at a set time. */
+export interface Routine {
+  id: string
+  name: string
+  /** Local time, for example "09:00". */
+  time: string
+  /** Days it runs on, such as "mon". Empty means every day. */
+  days: Array<'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat'>
+  /** What the character does, in the owner's words. */
+  instruction: string
+  enabled: boolean
+  /** ISO time of the last run. */
+  lastRunAt?: string
+}
+export type RoutineRequest
+  = | { kind: 'list' }
+    | { kind: 'create', name: string, time: string, days: Routine['days'], instruction: string }
+    | { kind: 'delete', id: string }
+    | { kind: 'enable', id: string, enabled: boolean }
+export interface RoutineResult {
+  ok: boolean
+  message: string
+  routines?: Array<Routine & { nextRun?: string }>
+}
+export const electronRoutineAction = defineInvokeEventa<RoutineResult, RoutineRequest>('eventa:invoke:electron:fairy:routine-action')
+/** FAIRY: a routine that is due now. Only the main window gets it, and it runs the routine in the active chat. */
+export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:fairy:routine-due')
+
 /** FAIRY: a screenshot for pointing. A click names its `captureId`, so the point maps to the right display. */
 export interface PcCapture extends LookAtScreenResult {
   captureId: string

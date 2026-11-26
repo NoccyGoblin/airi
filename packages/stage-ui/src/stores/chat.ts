@@ -466,6 +466,11 @@ export const useChatStore = defineStore('chat', () => {
     signal?: AbortSignal
     /** Continue with only the source turn's tools that the current request selection still permits. */
     continueFrom?: { turnId: string, tools: ChatToolReference[] }
+    /**
+     * FAIRY: tools for a notice that the owner set up to act, such as a routine. Without it, a notice gets no tools
+     * unless it continues a turn.
+     */
+    tools?: ChatToolReference[]
   } = {}) {
     if (!chatSession.sessionMetas[sessionId] || !isOwnerSession(sessionId))
       return
@@ -475,7 +480,7 @@ export const useChatStore = defineStore('chat', () => {
       const source = continuation && chatSession.getSessionMessagesIfLoaded(sessionId)?.find(message => message.id === continuation.turnId && message.role === 'user')
       // Loaded history binds the original turn in this session. Missing history grants no restricted tools.
       // Resolve synchronously, before startSend owns cancellation, rather than hydrating a stale session here.
-      const tools = source?.tools?.filter(tool => continuation?.tools.some(selected => selected.name === tool.name))
+      const tools = options.tools ?? source?.tools?.filter(tool => continuation?.tools.some(selected => selected.name === tool.name))
       const request = startSend({ sessionId, text: notice.text, messageId, tools, attachments: notice.attachments }, false, { notice: { source: notice.source } })
       const cancel = () => {
         void cancelTurn({ sessionId, turnId: messageId })
