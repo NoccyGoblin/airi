@@ -1,11 +1,13 @@
 import type { createContext } from '@moeru/eventa/adapters/electron/main'
 
-import type { PcActionRequest, PcActionResult } from '../../../../shared/eventa'
+import type { PcActionRequest, PcActionResult, PcCapture } from '../../../../shared/eventa'
 import type { OpenWindow, StartApp } from './apps'
 import type { KeyCombination } from './keys'
+import type { PhysicalRect } from './mouse'
 
 import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { promisify } from 'node:util'
 
@@ -13,13 +15,15 @@ import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
 import { Mutex } from 'async-mutex'
-import { app, BrowserWindow, clipboard, shell } from 'electron'
+import { app, BrowserWindow, clipboard, screen, shell } from 'electron'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 
-import { electronPcAction } from '../../../../shared/eventa'
+import { electronPcAction, electronPcCapture } from '../../../../shared/eventa'
+import { captureWithoutAiri } from '../look-at-screen'
 import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { chatKindOf } from './chats'
 import { describeKeyCombination, parseKeyCombination } from './keys'
+import { clickScript, screenPointOf, scrollScript } from './mouse'
 
 /**
  * FAIRY: fast, generic actions on the PC that the owner asks the character for, such as opening a website or an app,
@@ -59,6 +63,25 @@ async function listStartApps(): Promise<StartApp[]> {
     .map(app => ({ name: app.Name.trim(), appId: app.AppID }))
   startApps = { at: Date.now(), apps }
   return apps
+}
+
+/** Recent screenshots for pointing, by id, with the display they show. Older ones fall out. */
+const captures = new Map<string, { image: { width: number, height: number }, display: PhysicalRect }>()
+const MAX_CAPTURES = 5
+
+/** Takes a screenshot of the display under the mouse pointer for pointing, without AIRI's windows. */
+async function captureForPointing(): Promise<PcCapture> {
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  const shot = await captureWithoutAiri(display)
+  const captureId = randomUUID()
+  captures.set(captureId, { image: { width: shot.width, height: shot.height }, display: screen.dipToScreenRect(null, display.bounds) })
+  while (captures.size > MAX_CAPTURES)
+    captures.delete(captures.keys().next().value!)
+  return { captureId, ...shot }
+}
+
+function contains(bounds: Electron.Rectangle, point: Electron.Point) {
+  return point.x >= bounds.x && point.y >= bounds.y && point.x < bounds.x + bounds.width && point.y < bounds.y + bounds.height
 }
 
 /** True after Ctrl+K in Discord, until Enter or Escape. Then Enter opens a chat instead of sending. */
@@ -306,6 +329,26 @@ async function run(request: PcActionRequest): Promise<string> {
       await paste(text)
       return `Typed ${text.length} characters into ${front.title || front.processName}. Nothing was sent.`
     }
+    case 'click': {
+      const capture = captures.get(request.captureId)
+      if (!capture)
+        throw new Error('That screenshot is too old. Take a new one and point again.')
+      const point = screenPointOf({ x: request.x, y: request.y }, capture.image, capture.display)
+      // AIRI's windows were hidden in the screenshot, but they are on screen. A click there would hit AIRI.
+      const dip = screen.screenToDipPoint(point)
+      const ownWindow = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.isVisible() && contains(window.getBounds(), dip))
+      if (ownWindow)
+        throw new Error('AIRI\'s own window covers that spot, so nothing was clicked. Ask the owner to move the character or the chat.')
+      await runPowerShell(clickScript(point, request.button, request.double))
+      await sleep(KEY_SETTLE_MS)
+      return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} at (${request.x}, ${request.y}) of the screenshot.`
+    }
+    case 'scroll': {
+      await frontAppForInput()
+      const notches = Math.max(1, Math.min(20, Math.round(request.notches)))
+      await runPowerShell(scrollScript(request.direction === 'up' ? notches : -notches))
+      return `Scrolled ${request.direction} by ${notches} notch${notches > 1 ? 'es' : ''} where the pointer is.`
+    }
     case 'media': {
       uIOhook.keyTap(MEDIA_KEYS[request.action])
       return `Pressed the ${request.action} media key.`
@@ -320,6 +363,7 @@ async function run(request: PcActionRequest): Promise<string> {
 const acting = new Mutex()
 
 export function createPcActionsService(params: { context: ReturnType<typeof createContext>['context'] }) {
+  defineInvokeHandler(params.context, electronPcCapture, () => acting.runExclusive(captureForPointing))
   defineInvokeHandler(params.context, electronPcAction, async (request): Promise<PcActionResult> => {
     try {
       const message = await acting.runExclusive(() => run(request))

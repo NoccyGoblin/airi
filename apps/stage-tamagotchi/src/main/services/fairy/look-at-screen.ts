@@ -1,4 +1,5 @@
 import type { createContext } from '@moeru/eventa/adapters/electron/main'
+import type { Display } from 'electron'
 
 import type { LookAtScreenResult } from '../../../shared/eventa'
 
@@ -29,8 +30,19 @@ let keepWindowsOutOfCaptures = false
  * not cover what the user wants to show.
  */
 export async function lookAtScreen(window: BrowserWindow): Promise<LookAtScreenResult> {
+  const { width, height, ...shot } = await captureWithoutAiri(screen.getDisplayMatching(window.getBounds()))
+  return shot
+}
+
+/**
+ * One screenshot of `display` with AIRI's windows hidden, and the size of the image in pixels.
+ *
+ * Use when:
+ * - A position in the image must map back to the screen, for example for a click
+ */
+export async function captureWithoutAiri(display: Display): Promise<LookAtScreenResult & { width: number, height: number }> {
   if (keepWindowsOutOfCaptures)
-    return await captureDisplay(window)
+    return await captureDisplayOf(display)
 
   const ownWindows = BrowserWindow.getAllWindows().filter(w => !w.isDestroyed())
   for (const w of ownWindows)
@@ -38,7 +50,7 @@ export async function lookAtScreen(window: BrowserWindow): Promise<LookAtScreenR
 
   try {
     await sleep(HIDE_DELAY_MS)
-    return await captureDisplay(window)
+    return await captureDisplayOf(display)
   }
   finally {
     for (const w of ownWindows) {
@@ -64,7 +76,11 @@ export function setWindowsOutOfCaptures(on: boolean) {
 
 /** One screenshot of the display under `window`, as it is. AIRI's windows are in it unless they are protected. */
 export async function captureDisplay(window: BrowserWindow): Promise<LookAtScreenResult> {
-  const display = screen.getDisplayMatching(window.getBounds())
+  const { width, height, ...shot } = await captureDisplayOf(screen.getDisplayMatching(window.getBounds()))
+  return shot
+}
+
+async function captureDisplayOf(display: Display): Promise<LookAtScreenResult & { width: number, height: number }> {
   const { width, height } = display.size
   const scale = Math.min(1, MAX_SIDE / Math.max(width, height)) * display.scaleFactor
   const thumbnailSize = { width: Math.round(width * scale), height: Math.round(height * scale) }
@@ -80,7 +96,8 @@ export async function captureDisplay(window: BrowserWindow): Promise<LookAtScree
   if (Math.max(size.width, size.height) > MAX_SIDE)
     image = image.resize(size.width >= size.height ? { width: MAX_SIDE } : { height: MAX_SIDE })
 
-  return { mimeType: 'image/jpeg', data: image.toJPEG(85).toString('base64') }
+  const final = image.getSize()
+  return { mimeType: 'image/jpeg', data: image.toJPEG(85).toString('base64'), width: final.width, height: final.height }
 }
 
 export function createLookAtScreenService(params: {

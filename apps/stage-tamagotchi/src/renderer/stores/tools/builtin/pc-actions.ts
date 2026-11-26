@@ -1,13 +1,17 @@
+import type { Conversation } from '@proj-airi/core-agent'
 import type { Tool } from '@xsai/shared-chat'
 
-import type { PcActionRequest } from '../../../../shared/eventa'
+import type { PcActionRequest, PcCapture } from '../../../../shared/eventa'
 
 import { defineInvoke } from '@moeru/eventa'
 import { createContext } from '@moeru/eventa/adapters/electron/renderer'
+import { useTextGeneration } from '@proj-airi/stage-ui/composables/text-generation'
+import { useConsciousnessStore } from '@proj-airi/stage-ui/stores/modules/consciousness'
 import { tool } from '@xsai/tool'
 import { z } from 'zod'
 
-import { electronPcAction } from '../../../../shared/eventa'
+import { electronPcAction, electronPcCapture } from '../../../../shared/eventa'
+import { describingConversation, parsePointingAnswer, pointingConversation } from './pointing'
 
 /**
  * FAIRY: fast actions on the owner's PC: open a website or an app, press a shortcut in the app in front, and media
@@ -19,15 +23,48 @@ export const OPEN_APP_TOOL_NAME = 'open_app'
 export const CLOSE_APP_TOOL_NAME = 'close_app'
 export const TYPE_TEXT_TOOL_NAME = 'type_text'
 export const DISCORD_MESSAGE_TOOL_NAME = 'discord_message'
+export const CLICK_ON_TOOL_NAME = 'click_on'
+export const DESCRIBE_SCREEN_TOOL_NAME = 'describe_screen'
+export const SCROLL_TOOL_NAME = 'scroll'
 export const PRESS_KEYS_TOOL_NAME = 'press_keys'
 export const MEDIA_CONTROL_TOOL_NAME = 'media_control'
 
 const ONLY_WHEN_ASKED = 'Use it only when the owner asks you to do something on their PC, never on your own.'
 
-let invoke: ((request: PcActionRequest) => Promise<{ ok: boolean, message: string }>) | undefined
+let invokers: { act: (request: PcActionRequest) => Promise<{ ok: boolean, message: string }>, capture: () => Promise<PcCapture> } | undefined
+function getInvokers() {
+  if (!invokers) {
+    const { context } = createContext(window.electron.ipcRenderer)
+    invokers = { act: defineInvoke(context, electronPcAction), capture: defineInvoke(context, electronPcCapture) }
+  }
+  return invokers
+}
 function act(request: PcActionRequest) {
-  invoke ??= defineInvoke(createContext(window.electron.ipcRenderer).context, electronPcAction)
-  return invoke(request).then(result => JSON.stringify(result))
+  return getInvokers().act(request).then(result => JSON.stringify(result))
+}
+function getCapture() {
+  return getInvokers().capture()
+}
+
+/**
+ * Takes a screenshot of the screen under the mouse and asks the vision model where `target` is. Nothing is clicked.
+ *
+ * Returns:
+ * - The screenshot id and size, and the answer with the center of the target in screenshot pixels
+ */
+export async function locateOnScreen(target: string) {
+  const shot = await getCapture()
+  const answer = parsePointingAnswer(await askVision(pointingConversation(target, { url: `data:${shot.mimeType};base64,${shot.data}`, width: shot.width, height: shot.height })))
+  return { shot: { captureId: shot.captureId, width: shot.width, height: shot.height }, answer }
+}
+
+/** Sends one screenshot request to the chat model of the character, which reads images. */
+async function askVision(conversation: Conversation) {
+  const consciousness = useConsciousnessStore()
+  if (!consciousness.activeProvider || !consciousness.activeModel)
+    throw new Error('No chat model is set, so the screen cannot be read.')
+  const generate = useTextGeneration().generateText({ providerId: consciousness.activeProvider, model: consciousness.activeModel, maxTokens: 300 })
+  return await generate(conversation, AbortSignal.timeout(30_000))
 }
 
 const tools: Promise<Tool>[] = [
@@ -108,6 +145,53 @@ const tools: Promise<Tool>[] = [
     parameters: z.object({
       keys: z.string().describe('One shortcut, keys joined with "+", for example "ctrl+shift+t".'),
       group_send_approved: z.boolean().describe('True only when the owner\'s own words said to send the message to this group or channel. Otherwise false.'),
+    }),
+  }),
+  tool({
+    name: CLICK_ON_TOOL_NAME,
+    description: [
+      'Click on something on the owner\'s screen by describing it, for example "the blue Play button", "the second video in the list", or "the Settings gear in the top right".',
+      'It takes a fresh screenshot of the screen under the mouse, finds the thing, and clicks its center. Describe it the way it looks on screen.',
+      'Use it when no faster tool fits. After a click that should change the screen, use describe_screen to check the result before the next step.',
+      'Before a click that sends, buys, deletes, or posts something, tell the owner what you will click and wait for a yes.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { target: string, button: 'left' | 'right', double_click: boolean }) => {
+      const { shot, answer } = await locateOnScreen(input.target)
+      if (!answer.found)
+        return JSON.stringify({ ok: false, message: `Did not click: ${answer.reason ?? 'not found'}.` })
+      const result = JSON.parse(await act({ kind: 'click', captureId: shot.captureId, x: Math.round(answer.x!), y: Math.round(answer.y!), button: input.button, double: input.double_click })) as { ok: boolean, message: string }
+      return JSON.stringify(result.ok ? { ok: true, message: `${result.message} It was ${answer.what ?? input.target}.` } : result)
+    },
+    parameters: z.object({
+      target: z.string().describe('What to click, described as it looks on screen.'),
+      button: z.enum(['left', 'right']).describe('The mouse button. Use "left" unless the owner asked for a right-click.'),
+      double_click: z.boolean().describe('True to double-click, for example to open a file on the desktop.'),
+    }),
+  }),
+  tool({
+    name: DESCRIBE_SCREEN_TOOL_NAME,
+    description: [
+      'Look at the owner\'s screen now and answer a question about it in words, for example "did the video start?" or "which buttons are in the dialog?".',
+      'Use it to check what a click or a key did, and to find what to click next.',
+    ].join(' '),
+    execute: async (input: { question: string }) => {
+      const shot = await getCapture()
+      return await askVision(describingConversation(input.question, `data:${shot.mimeType};base64,${shot.data}`))
+    },
+    parameters: z.object({ question: z.string().describe('What you want to know about the screen.') }),
+  }),
+  tool({
+    name: SCROLL_TOOL_NAME,
+    description: [
+      'Scroll with the mouse wheel where the mouse pointer is on the owner\'s screen, for example to see more of a page or a list.',
+      'One notch is a few lines. Use describe_screen afterwards to see the new part.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { direction: 'up' | 'down', notches: number }) => act({ kind: 'scroll', direction: input.direction, notches: input.notches }),
+    parameters: z.object({
+      direction: z.enum(['up', 'down']),
+      notches: z.number().int().min(1).max(20).describe('How far, in wheel notches. 5 is about half a page.'),
     }),
   }),
   tool({

@@ -286,11 +286,21 @@ export type PcActionRequest
     | { kind: 'type-text', text: string }
     | { kind: 'discord-message', person: string, message: string }
     | { kind: 'media', action: 'play-pause' | 'next' | 'previous' | 'volume-up' | 'volume-down' | 'mute' }
+    | { kind: 'click', captureId: string, x: number, y: number, button: 'left' | 'right', double: boolean }
+    | { kind: 'scroll', direction: 'up' | 'down', notches: number }
 export interface PcActionResult {
   ok: boolean
   message: string
 }
 export const electronPcAction = defineInvokeEventa<PcActionResult, PcActionRequest>('eventa:invoke:electron:fairy:pc-action')
+/** FAIRY: a screenshot for pointing. A click names its `captureId`, so the point maps to the right display. */
+export interface PcCapture extends LookAtScreenResult {
+  captureId: string
+  width: number
+  height: number
+}
+/** FAIRY: a screenshot of the display under the mouse pointer, without AIRI's windows. */
+export const electronPcCapture = defineInvokeEventa<PcCapture>('eventa:invoke:electron:fairy:pc-capture')
 
 /** FAIRY: a beat every few seconds to the main window. While live mode is on, the window decides there whether to look. */
 export const electronLiveModeTick = defineEventa<void>('eventa:event:electron:fairy:live-mode:tick')
