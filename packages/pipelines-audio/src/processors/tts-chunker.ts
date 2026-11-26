@@ -20,6 +20,14 @@ const regexpCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Scrip
 const regexpSound = /[\p{L}\p{N}\p{Extended_Pictographic}]/u
 const hardPunctuations = new Set('.。?？!！…⋯～~\n\t\r')
 const softPunctuations = new Set(',，、–—:：;；《》「」')
+/**
+ * FAIRY: core-agent carries a sound such as a laugh as one character from U+E110 to U+E11F. Each one ends a chunk like
+ * a sentence end, so a short piece that ends with the sound plays first while the next piece synthesizes.
+ */
+function isVoiceMoodMarker(value: string) {
+  const code = value.charCodeAt(0)
+  return value.length === 1 && code >= 0xE110 && code <= 0xE11F
+}
 const regexpKana = /[\p{Script=Hiragana}\p{Script=Katakana}]/u
 
 /**
@@ -109,7 +117,7 @@ export async function* chunkTtsInput(
 
     const flush = value === TTS_FLUSH_INSTRUCTION
     const special = value === TTS_SPECIAL_TOKEN
-    const hard = hardPunctuations.has(value)
+    const hard = hardPunctuations.has(value) || isVoiceMoodMarker(value)
     const soft = softPunctuations.has(value)
     let next: IteratorResult<string, void> | undefined
     let afterNext: IteratorResult<string, void> | undefined

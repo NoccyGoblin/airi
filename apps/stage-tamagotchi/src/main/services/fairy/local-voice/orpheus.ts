@@ -88,12 +88,24 @@ function loadDecoder() {
   return decoder
 }
 
-/** Speaks `text` with an Orpheus voice. Returns mono samples at 24 kHz. */
-export async function speakWithOrpheus(text: string, voice: string, signal?: AbortSignal): Promise<Float32Array> {
+/**
+ * Speaks `text` with an Orpheus voice. Returns mono samples at 24 kHz.
+ *
+ * `onGpu` runs the GPU part, so the caller can let one request use the GPU at a time while another one decodes on the
+ * CPU. The next sentence then generates while the previous one decodes.
+ */
+export async function speakWithOrpheus(text: string, voice: string, onGpu: <T>(work: () => Promise<T>) => Promise<T> = work => work()): Promise<Float32Array> {
   const session = await loadDecoder()
+  const layers = await onGpu(() => orpheusCodes(text, voice))
+  const tensor = (codes: number[]) => new ort!.Tensor('int64', BigInt64Array.from(codes, BigInt), [1, codes.length])
+  const feeds = Object.fromEntries(session.inputNames.map((name, index) => [name, tensor(layers[index])]))
+  const result = await session.run(feeds)
+  return result[session.outputNames[0]].data as Float32Array
+}
+
+async function orpheusCodes(text: string, voice: string) {
   const response = await fetch(`${OLLAMA_URL}/api/generate`, {
     method: 'POST',
-    signal,
     body: JSON.stringify({
       model: ORPHEUS_MODEL,
       raw: true,
@@ -110,11 +122,7 @@ export async function speakWithOrpheus(text: string, voice: string, signal?: Abo
   const layers = snacLayers(output)
   if (!layers[0].length)
     throw new Error('Orpheus returned no audio')
-
-  const tensor = (codes: number[]) => new ort!.Tensor('int64', BigInt64Array.from(codes, BigInt), [1, codes.length])
-  const feeds = Object.fromEntries(session.inputNames.map((name, index) => [name, tensor(layers[index])]))
-  const result = await session.run(feeds)
-  return result[session.outputNames[0]].data as Float32Array
+  return layers
 }
 
 /** Loads Orpheus onto the GPU and the decoder into memory, so the first sentence does not wait for them. */

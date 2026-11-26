@@ -139,7 +139,7 @@ export function startLocalVoiceServer() {
         if (body.model === 'orpheus') {
           const voice = typeof body.voice === 'string' && (ORPHEUS_VOICES as readonly string[]).includes(body.voice) ? body.voice : ORPHEUS_VOICES[0]
           const started = Date.now()
-          const samples = await speaking.runExclusive(() => speakWithOrpheus(input, voice))
+          const samples = await speakWithOrpheus(input, voice, work => speaking.runExclusive(work))
           log.log(`Orpheus spoke ${(samples.length / ORPHEUS_SAMPLE_RATE).toFixed(1)} s in ${Date.now() - started} ms`)
           return new Response(toWav(samples, ORPHEUS_SAMPLE_RATE), { headers: { 'Content-Type': 'audio/wav', ...CORS } })
         }

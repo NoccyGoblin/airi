@@ -39,6 +39,11 @@ describe('chunkTtsInput sentence ends', () => {
     expect(await collectChunkText('Read the guide (see it.) now.')).toEqual(['Read the guide (see it.', ') now.'])
   })
 
+  // FAIRY: a laugh marker ends a chunk, so a short piece with the laugh plays first.
+  it('ends a chunk after a voice mood marker', async () => {
+    expect(await collectChunkText('Haha  no way, you actually did that?')).toEqual(['Haha ', 'no way, you actually did that?'])
+  })
+
   it('keeps numbers and reads three dots as an ellipsis', async () => {
     expect(await collectChunkText('Pi is 3.14 and 1,000 is big. Wait... ok.')).toEqual(['Pi is 3.14 and 1,000 is big.', 'Wait…', 'ok.'])
   })
