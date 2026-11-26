@@ -293,6 +293,29 @@ export interface PcActionResult {
   message: string
 }
 export const electronPcAction = defineInvokeEventa<PcActionResult, PcActionRequest>('eventa:invoke:electron:fairy:pc-action')
+/** FAIRY: a file action in the owner's own folders. */
+export type FileActionRequest
+  = | { kind: 'find', query: string }
+    | { kind: 'list', path?: string }
+    | { kind: 'open', path: string }
+    | { kind: 'move', paths: string[], folder: string }
+    | { kind: 'trash', paths: string[] }
+export interface FileEntry {
+  path: string
+  name: string
+  kind: 'file' | 'folder'
+  /** Bytes. Folders have none. */
+  size?: number
+  /** Local time, for example "2026-11-26 09:30". */
+  modified: string
+}
+export interface FileActionResult {
+  ok: boolean
+  message: string
+  items?: FileEntry[]
+}
+export const electronFileAction = defineInvokeEventa<FileActionResult, FileActionRequest>('eventa:invoke:electron:fairy:file-action')
+
 /** FAIRY: a screenshot for pointing. A click names its `captureId`, so the point maps to the right display. */
 export interface PcCapture extends LookAtScreenResult {
   captureId: string

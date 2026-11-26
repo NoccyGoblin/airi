@@ -5,6 +5,7 @@ import { useLlmToolsStore } from '@proj-airi/stage-ui/stores/ai/chat-llm/tools'
 import { TOOL_ICONS } from '@proj-airi/stage-ui/tools/icons'
 import { defineStore } from 'pinia'
 
+import { fileTools, FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './builtin/files'
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
 import { CLICK_ON_TOOL_NAME, CLOSE_APP_TOOL_NAME, DESCRIBE_SCREEN_TOOL_NAME, DISCORD_MESSAGE_TOOL_NAME, MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, pcActionTools, PRESS_KEYS_TOOL_NAME, SCROLL_TOOL_NAME, TYPE_TEXT_TOOL_NAME } from './builtin/pc-actions'
@@ -37,6 +38,12 @@ export const widgetToolReferences = [
   { name: DESCRIBE_SCREEN_TOOL_NAME },
   { name: SCROLL_TOOL_NAME },
   { name: MEDIA_CONTROL_TOOL_NAME },
+  // FAIRY: files in the owner's own folders.
+  { name: FIND_FILES_TOOL_NAME },
+  { name: LIST_FOLDER_TOOL_NAME },
+  { name: OPEN_FILE_TOOL_NAME },
+  { name: MOVE_FILES_TOOL_NAME },
+  { name: TRASH_FILES_TOOL_NAME },
 ] satisfies ChatToolReference[]
 
 export const artistryToolReferences = [
@@ -64,6 +71,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       reminderTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
       webKnowledgeTools().then(tools => ({ tools, icon: TOOL_ICONS.search })),
       pcActionTools().then(tools => ({ tools, icon: TOOL_ICONS.computerUse })),
+      fileTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

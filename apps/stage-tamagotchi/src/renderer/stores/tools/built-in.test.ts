@@ -50,6 +50,14 @@ vi.mock('./builtin/pc-actions', () => ({
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
   pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
 }))
+vi.mock('./builtin/files', () => ({
+  FIND_FILES_TOOL_NAME: 'find_files',
+  LIST_FOLDER_TOOL_NAME: 'list_folder',
+  OPEN_FILE_TOOL_NAME: 'open_file',
+  MOVE_FILES_TOOL_NAME: 'move_files',
+  TRASH_FILES_TOOL_NAME: 'trash_files',
+  fileTools: vi.fn(async () => ['find_files', 'list_folder', 'open_file', 'move_files', 'trash_files'].map(executableTool)),
+}))
 vi.mock('./builtin/widgets', () => ({
   widgetsTools: vi.fn(async () => [executableTool('stage_widgets')]),
 }))
@@ -91,6 +99,11 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:describe_screen', defaultActive: false },
       { id: 'tamagotchi:scroll', defaultActive: false },
       { id: 'tamagotchi:media_control', defaultActive: false },
+      { id: 'tamagotchi:find_files', defaultActive: false },
+      { id: 'tamagotchi:list_folder', defaultActive: false },
+      { id: 'tamagotchi:open_file', defaultActive: false },
+      { id: 'tamagotchi:move_files', defaultActive: false },
+      { id: 'tamagotchi:trash_files', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')
