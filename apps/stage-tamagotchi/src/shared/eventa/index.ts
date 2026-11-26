@@ -284,6 +284,7 @@ export type PcActionRequest
     | { kind: 'close-app', name: string }
     | { kind: 'press-keys', keys: string, groupSendApproved?: boolean }
     | { kind: 'type-text', text: string }
+    | { kind: 'discord-message', person: string, message: string }
     | { kind: 'media', action: 'play-pause' | 'next' | 'previous' | 'volume-up' | 'volume-down' | 'mute' }
 export interface PcActionResult {
   ok: boolean

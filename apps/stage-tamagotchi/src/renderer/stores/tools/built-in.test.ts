@@ -42,9 +42,10 @@ vi.mock('./builtin/pc-actions', () => ({
   OPEN_APP_TOOL_NAME: 'open_app',
   CLOSE_APP_TOOL_NAME: 'close_app',
   TYPE_TEXT_TOOL_NAME: 'type_text',
+  DISCORD_MESSAGE_TOOL_NAME: 'discord_message',
   PRESS_KEYS_TOOL_NAME: 'press_keys',
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
-  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'type_text', 'press_keys', 'media_control'].map(executableTool)),
+  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'media_control'].map(executableTool)),
 }))
 vi.mock('./builtin/widgets', () => ({
   widgetsTools: vi.fn(async () => [executableTool('stage_widgets')]),
@@ -80,6 +81,7 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:open_website', defaultActive: false },
       { id: 'tamagotchi:open_app', defaultActive: false },
       { id: 'tamagotchi:close_app', defaultActive: false },
+      { id: 'tamagotchi:discord_message', defaultActive: false },
       { id: 'tamagotchi:type_text', defaultActive: false },
       { id: 'tamagotchi:press_keys', defaultActive: false },
       { id: 'tamagotchi:media_control', defaultActive: false },

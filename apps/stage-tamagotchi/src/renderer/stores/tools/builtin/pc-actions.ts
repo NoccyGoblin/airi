@@ -18,6 +18,7 @@ export const OPEN_WEBSITE_TOOL_NAME = 'open_website'
 export const OPEN_APP_TOOL_NAME = 'open_app'
 export const CLOSE_APP_TOOL_NAME = 'close_app'
 export const TYPE_TEXT_TOOL_NAME = 'type_text'
+export const DISCORD_MESSAGE_TOOL_NAME = 'discord_message'
 export const PRESS_KEYS_TOOL_NAME = 'press_keys'
 export const MEDIA_CONTROL_TOOL_NAME = 'media_control'
 
@@ -66,14 +67,26 @@ const tools: Promise<Tool>[] = [
     parameters: z.object({ name: z.string().describe('The app name, or a word from its window title.') }),
   }),
   tool({
+    name: DISCORD_MESSAGE_TOOL_NAME,
+    description: [
+      'Send a Discord direct message to one person for the owner. It opens Discord, finds the person, checks that their direct message is open, and sends.',
+      'It never sends to a group chat or a server, and it stops when it cannot open the right direct message.',
+      'Write the message in the owner\'s voice, not as yourself, unless they ask otherwise. Call it once, and do not use other tools for the same message.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { person: string, message: string }) => act({ kind: 'discord-message', person: input.person, message: input.message }),
+    parameters: z.object({
+      person: z.string().describe('The person\'s Discord name as the owner said it, without "@", for example "boterlion".'),
+      message: z.string().max(2000).describe('The message to send.'),
+    }),
+  }),
+  tool({
     name: TYPE_TEXT_TOOL_NAME,
     description: [
       'Type text into the app in front on the owner\'s PC, where its text cursor is, for example a search box or a chat box.',
       'It only types and never sends. Press enter with press_keys to send or confirm.',
-      'To message one person on Discord: open_app "Discord", press_keys ctrl+k, type_text "@" followed by the person\'s name (the "@" shows only people, not groups that the person is in),',
-      'press_keys enter, type_text the message, then press_keys enter to send.',
+      'To message one person on Discord, use discord_message instead.',
       'Send to a group chat or a server channel only when the owner said to send it to that group.',
-      'Write the message in the owner\'s voice, not as yourself, unless they ask otherwise.',
       ONLY_WHEN_ASKED,
     ].join(' '),
     execute: async (input: { text: string }) => act({ kind: 'type-text', text: input.text }),
@@ -86,6 +99,7 @@ const tools: Promise<Tool>[] = [
       'Examples: new tab ctrl+t, close tab ctrl+w, reopen tab ctrl+shift+t, next tab ctrl+tab, reload f5, full screen f11,',
       'switch app alt+tab, show desktop win+d, find ctrl+f, undo ctrl+z. Call it again for a second shortcut.',
       'Alt+F4 and Shift+Delete are blocked.',
+      'To send a Discord direct message, use discord_message, not keys.',
       'In Discord, enter in a group chat or server channel is blocked unless group_send_approved is true.',
       ONLY_WHEN_ASKED,
     ].join(' '),
