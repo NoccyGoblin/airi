@@ -27,14 +27,51 @@ function score(name: string, query: string) {
  * matchStartApps([{ name: 'Spotify', appId: 'x' }], 'spotify') // [{ name: 'Spotify', appId: 'x' }]
  */
 export function matchStartApps(apps: readonly StartApp[], query: string): StartApp[] {
+  return rankByName(apps, query, app => [app.name])
+}
+
+/**
+ * Ranks items by how well one of their names matches a spoken name, best first. Items without a match are left out.
+ * A tie goes to the shorter best name.
+ */
+export function rankByName<T>(items: readonly T[], query: string, names: (item: T) => string[]): T[] {
   const wanted = query.trim().toLowerCase()
   if (!wanted)
     return []
-  return apps
-    .map(app => ({ app, score: score(app.name, wanted) }))
+  return items
+    .map((item) => {
+      const scored = names(item).filter(Boolean).map(name => ({ name, score: score(name, wanted) }))
+      const best = scored.sort((a, b) => b.score - a.score || a.name.length - b.name.length)[0]
+      return { item, score: best?.score ?? 0, length: best?.name.length ?? 0 }
+    })
     .filter(entry => entry.score > 0)
-    .sort((a, b) => b.score - a.score || a.app.name.length - b.app.name.length)
-    .map(entry => entry.app)
+    .sort((a, b) => b.score - a.score || a.length - b.length)
+    .map(entry => entry.item)
+}
+
+/** FAIRY: a process with a window, as `Get-Process` lists it. */
+export interface OpenWindow {
+  id: number
+  processName: string
+  title: string
+  product: string
+}
+
+/** Processes that the character must never close: Windows itself, AIRI, and the Claude app. */
+const PROTECTED_PROCESSES = new Set(['explorer', 'electron', 'claude', 'textinputhost', 'shellexperiencehost', 'startmenuexperiencehost', 'searchhost', 'lockapp', 'dwm', 'winlogon', 'csrss', 'taskmgr'])
+
+/**
+ * Finds the open windows of the app that best matches a spoken name. All windows of that process name come back, so
+ * every window of the app closes. Protected processes and `ownProcessIds` never match.
+ *
+ * @example
+ * matchOpenWindows([{ id: 1, processName: 'Discord', title: 'Friends - Discord', product: 'Discord' }], 'discord', [])
+ * // => [{ id: 1, ... }]
+ */
+export function matchOpenWindows(windows: readonly OpenWindow[], query: string, ownProcessIds: readonly number[]): OpenWindow[] {
+  const closable = windows.filter(window => !PROTECTED_PROCESSES.has(window.processName.toLowerCase()) && !ownProcessIds.includes(window.id))
+  const [best] = rankByName(closable, query, window => [window.product, window.processName, window.title])
+  return best ? closable.filter(window => window.processName === best.processName) : []
 }
 
 /**

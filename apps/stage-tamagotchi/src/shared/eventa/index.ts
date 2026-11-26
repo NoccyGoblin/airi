@@ -281,6 +281,7 @@ export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string,
 export type PcActionRequest
   = | { kind: 'open-website', url: string, browser?: 'default' | 'chrome' | 'edge' | 'firefox' | 'brave' | 'opera' }
     | { kind: 'open-app', name: string }
+    | { kind: 'close-app', name: string }
     | { kind: 'press-keys', keys: string }
     | { kind: 'media', action: 'play-pause' | 'next' | 'previous' | 'volume-up' | 'volume-down' | 'mute' }
 export interface PcActionResult {

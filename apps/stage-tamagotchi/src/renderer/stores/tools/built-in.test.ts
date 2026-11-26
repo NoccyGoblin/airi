@@ -40,9 +40,10 @@ vi.mock('./builtin/web-knowledge', () => ({
 vi.mock('./builtin/pc-actions', () => ({
   OPEN_WEBSITE_TOOL_NAME: 'open_website',
   OPEN_APP_TOOL_NAME: 'open_app',
+  CLOSE_APP_TOOL_NAME: 'close_app',
   PRESS_KEYS_TOOL_NAME: 'press_keys',
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
-  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'press_keys', 'media_control'].map(executableTool)),
+  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'press_keys', 'media_control'].map(executableTool)),
 }))
 vi.mock('./builtin/widgets', () => ({
   widgetsTools: vi.fn(async () => [executableTool('stage_widgets')]),
@@ -77,6 +78,7 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:web_search', defaultActive: false },
       { id: 'tamagotchi:open_website', defaultActive: false },
       { id: 'tamagotchi:open_app', defaultActive: false },
+      { id: 'tamagotchi:close_app', defaultActive: false },
       { id: 'tamagotchi:press_keys', defaultActive: false },
       { id: 'tamagotchi:media_control', defaultActive: false },
     ])

@@ -16,6 +16,7 @@ import { electronPcAction } from '../../../../shared/eventa'
 
 export const OPEN_WEBSITE_TOOL_NAME = 'open_website'
 export const OPEN_APP_TOOL_NAME = 'open_app'
+export const CLOSE_APP_TOOL_NAME = 'close_app'
 export const PRESS_KEYS_TOOL_NAME = 'press_keys'
 export const MEDIA_CONTROL_TOOL_NAME = 'media_control'
 
@@ -51,6 +52,17 @@ const tools: Promise<Tool>[] = [
     ].join(' '),
     execute: async (input: { name: string }) => act({ kind: 'open-app', name: input.name }),
     parameters: z.object({ name: z.string().describe('The app name.') }),
+  }),
+  tool({
+    name: CLOSE_APP_TOOL_NAME,
+    description: [
+      'Close an open app on the owner\'s PC, with all its windows, by its name or a word from its window title, for example "Discord" or "Spotify".',
+      'It asks the app to close like its close button, so an app with unsaved work can still ask to save. It never forces an app closed.',
+      'Windows itself, you (AIRI), and the Claude app cannot be closed. To close only one browser tab, use press_keys with ctrl+w instead.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { name: string }) => act({ kind: 'close-app', name: input.name }),
+    parameters: z.object({ name: z.string().describe('The app name, or a word from its window title.') }),
   }),
   tool({
     name: PRESS_KEYS_TOOL_NAME,

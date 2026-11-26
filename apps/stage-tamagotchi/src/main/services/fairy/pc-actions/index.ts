@@ -1,7 +1,7 @@
 import type { createContext } from '@moeru/eventa/adapters/electron/main'
 
 import type { PcActionRequest, PcActionResult } from '../../../../shared/eventa'
-import type { StartApp } from './apps'
+import type { OpenWindow, StartApp } from './apps'
 
 import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
@@ -11,11 +11,11 @@ import { promisify } from 'node:util'
 import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
-import { BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 
 import { electronPcAction } from '../../../../shared/eventa'
-import { matchStartApps, normalizeWebAddress } from './apps'
+import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { describeKeyCombination, parseKeyCombination } from './keys'
 
 /**
@@ -53,6 +53,22 @@ async function listStartApps(): Promise<StartApp[]> {
     .map(app => ({ name: app.Name.trim(), appId: app.AppID }))
   startApps = { at: Date.now(), apps }
   return apps
+}
+
+/** Every process that has a window now. */
+async function listOpenWindows(): Promise<OpenWindow[]> {
+  const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object Id, ProcessName, MainWindowTitle, Product | ConvertTo-Json -Compress'], { timeout: 15_000, windowsHide: true, maxBuffer: 8 * 1024 * 1024 })
+  if (!stdout.trim())
+    return []
+  const raw = JSON.parse(stdout) as RawWindow | RawWindow[]
+  return (Array.isArray(raw) ? raw : [raw]).map(window => ({ id: window.Id, processName: window.ProcessName, title: window.MainWindowTitle ?? '', product: window.Product ?? '' }))
+}
+
+interface RawWindow {
+  Id: number
+  ProcessName: string
+  MainWindowTitle?: string
+  Product?: string
 }
 
 /** Runs a PowerShell script from base64, so no value inside it can break out of its quotes. */
@@ -93,6 +109,16 @@ async function run(request: PcActionRequest): Promise<string> {
       })
       const others = matches.slice(1, 4).map(other => other.name)
       return `Opened ${app.name}.${others.length ? ` Other matches: ${others.join(', ')}.` : ''}`
+    }
+    case 'close-app': {
+      const ownProcessIds = app.getAppMetrics().map(metric => metric.pid)
+      const windows = matchOpenWindows(await listOpenWindows(), request.name, ownProcessIds)
+      if (!windows.length)
+        throw new Error(`No open app matches "${request.name}". Windows, AIRI, and the Claude app cannot be closed.`)
+      // CloseMainWindow asks the app to close, like its close button, so an app with unsaved work can still ask.
+      await runPowerShell(`Get-Process -Id ${windows.map(window => window.id).join(',')} -ErrorAction SilentlyContinue | ForEach-Object { [void]$_.CloseMainWindow() }`)
+      const [first] = windows
+      return `Asked ${first.product || first.processName} to close (${windows.length} window${windows.length > 1 ? 's' : ''}). It can still ask to save.`
     }
     case 'press-keys': {
       const combination = parseKeyCombination(request.keys)

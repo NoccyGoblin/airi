@@ -7,7 +7,7 @@ import { defineStore } from 'pinia'
 
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
-import { MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, pcActionTools, PRESS_KEYS_TOOL_NAME } from './builtin/pc-actions'
+import { CLOSE_APP_TOOL_NAME, MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, pcActionTools, PRESS_KEYS_TOOL_NAME } from './builtin/pc-actions'
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
 import { weatherTools } from './builtin/weather'
 import { WEB_SEARCH_TOOL_NAME, webKnowledgeTools, WIKIPEDIA_TOOL_NAME } from './builtin/web-knowledge'
@@ -29,6 +29,7 @@ export const widgetToolReferences = [
   // FAIRY: fast actions on the PC when the owner asks for them.
   { name: OPEN_WEBSITE_TOOL_NAME },
   { name: OPEN_APP_TOOL_NAME },
+  { name: CLOSE_APP_TOOL_NAME },
   { name: PRESS_KEYS_TOOL_NAME },
   { name: MEDIA_CONTROL_TOOL_NAME },
 ] satisfies ChatToolReference[]
