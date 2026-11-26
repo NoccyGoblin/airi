@@ -40,16 +40,20 @@
   "dependencies": {
     "@auv-js/cli": "catalog:",
     "@auv-js/sdk": "catalog:",
+    "@discordjs/voice": "catalog:",
     "@ergosphere-it/electron": "catalog:",
     "@huggingface/transformers": "catalog:",
     "@proj-airi/electron-native-backdrop": "workspace:^",
     "@xsai-apple-speech/transcription-native": "catalog:",
     "@xsai-apple-vision/vision-native": "catalog:",
+    "discord.js": "catalog:",
     "electron-click-drag-plugin": "catalog:",
     "electron-updater": "^6.8.9",
     "kokoro-js": "catalog:",
     "node-macos-disclaim": "catalog:",
     "node-pty": "catalog:",
+    "opusscript": "catalog:",
+    "prism-media": "catalog:",
     "uiohook-napi": "catalog:"
   },
   "optionalDependencies": {

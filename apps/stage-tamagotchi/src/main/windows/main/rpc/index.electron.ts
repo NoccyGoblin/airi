@@ -41,6 +41,7 @@ import { createMcpServersService } from '../../../services/airi/mcp-servers'
 import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
+import { createDiscordBotService } from '../../../services/fairy/discord'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
@@ -98,6 +99,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createRoutineScheduler({ context }))
   // FAIRY: Escape stops the character while she is busy.
   onWindowClosed(params.window, createStopKeyService({ context }))
+  // FAIRY: the character's own Discord bot. It starts when fairy-data/discord-bot.json has a token.
+  onWindowClosed(params.window, createDiscordBotService({ context }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

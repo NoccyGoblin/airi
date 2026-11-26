@@ -67,6 +67,7 @@ import {
   electronPluginUnload,
 } from '../shared/eventa/plugin/host'
 import { electronPluginToolsChanged } from '../shared/eventa/plugin/tools'
+import { setupDiscordBridge } from './bridges/discord'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
 import { setupLiveModeBridge } from './bridges/live-mode'
@@ -322,6 +323,8 @@ function createFullStageRuntime() {
   setupRoutinesBridge(context.value)
   // FAIRY: only the main window plays her voice and runs her turns, so only it stops them on Escape.
   setupStopKeyBridge(context.value)
+  // FAIRY: only the main window answers the character's Discord bot.
+  setupDiscordBridge(context.value)
 
   return {
     async initialize() {

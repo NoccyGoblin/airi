@@ -349,6 +349,29 @@ export const electronRoutineAction = defineInvokeEventa<RoutineResult, RoutineRe
 /** FAIRY: a routine that is due now. Only the main window gets it, and it runs the routine in the active chat. */
 export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:fairy:routine-due')
 
+/** FAIRY: something said to the character on Discord, in a text channel or in a voice call. */
+export interface DiscordTurnRequest {
+  id: string
+  /** The character card name from the bot settings. An empty name means the active character. */
+  character: string
+  /** Where it was said, for example "#general on My Server" or "the voice call General on My Server". */
+  place: string
+  speaker: string
+  text: string
+  /** True for speech in a voice call. Then the reply comes back as speech too. */
+  voice: boolean
+}
+export interface DiscordTurnReply {
+  id: string
+  ok: boolean
+  reply?: string
+  /** Base64 of the spoken reply as mono 16-bit little-endian PCM at 48 kHz, for a voice call. */
+  speech?: string
+  error?: string
+}
+export const electronDiscordTurn = defineEventa<DiscordTurnRequest>('eventa:event:electron:fairy:discord:turn')
+export const electronDiscordReply = defineInvokeEventa<void, DiscordTurnReply>('eventa:invoke:electron:fairy:discord:reply')
+
 /** FAIRY: the main window tells whether the character is busy. Only then Escape stops her, everywhere on the PC. */
 export const electronStopKeyArmed = defineInvokeEventa<void, { armed: boolean }>('eventa:invoke:electron:fairy:stop-key-armed')
 /** FAIRY: the owner pressed Escape while the character was busy. */
