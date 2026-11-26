@@ -25,7 +25,16 @@ export function createFileDropService(params: { context: ReturnType<typeof creat
       throw new Error('That is not a file.')
     if (info.size > MAX_BYTES)
       throw new Error('The file is too big.')
-    const bytes = await readFile(path)
-    return { data: bytes.toString('base64'), size: bytes.length }
+    try {
+      const bytes = await readFile(path)
+      return { data: bytes.toString('base64'), size: bytes.length }
+    }
+    catch (error) {
+      // A OneDrive file that is only online cannot be read while OneDrive is not running. Windows then reports an
+      // unknown read error, which tells the owner nothing.
+      if ((error as NodeJS.ErrnoException).code === 'UNKNOWN')
+        throw new Error('Windows could not open it. It is probably a OneDrive file that is only online while OneDrive is not running. Start OneDrive, or right-click the file and choose "Always keep on this device"')
+      throw error
+    }
   })
 }
