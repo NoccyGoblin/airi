@@ -18,6 +18,7 @@ import { createLeagueService } from '../../services/fairy/league'
 import { createLiveModeFrameService } from '../../services/fairy/live-mode'
 import { createLookAtScreenService } from '../../services/fairy/look-at-screen'
 import { createMemoryFilesService } from '../../services/fairy/memory-files'
+import { createPcActionsService } from '../../services/fairy/pc-actions'
 import { createPhoneInfoService } from '../../services/fairy/phone'
 import { createWebKnowledgeService } from '../../services/fairy/web-knowledge'
 
@@ -215,6 +216,7 @@ export async function setupBaseWindowElectronInvokes(params: {
   createWebKnowledgeService({ context: params.context })
   createPhoneInfoService({ context: params.context })
   createLiveModeFrameService({ context: params.context })
+  createPcActionsService({ context: params.context })
   createMemoryFilesService({ context: params.context, onClosed: stop => params.window.once('closed', stop) })
 
   await createI18nService({ context: params.context, window: params.window, i18n: params.i18n })

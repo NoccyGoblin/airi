@@ -37,6 +37,13 @@ vi.mock('./builtin/web-knowledge', () => ({
   WEB_SEARCH_TOOL_NAME: 'web_search',
   webKnowledgeTools: vi.fn(async () => [executableTool('wikipedia'), executableTool('web_search')]),
 }))
+vi.mock('./builtin/pc-actions', () => ({
+  OPEN_WEBSITE_TOOL_NAME: 'open_website',
+  OPEN_APP_TOOL_NAME: 'open_app',
+  PRESS_KEYS_TOOL_NAME: 'press_keys',
+  MEDIA_CONTROL_TOOL_NAME: 'media_control',
+  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'press_keys', 'media_control'].map(executableTool)),
+}))
 vi.mock('./builtin/widgets', () => ({
   widgetsTools: vi.fn(async () => [executableTool('stage_widgets')]),
 }))
@@ -68,6 +75,10 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:cancel_reminder', defaultActive: false },
       { id: 'tamagotchi:wikipedia', defaultActive: false },
       { id: 'tamagotchi:web_search', defaultActive: false },
+      { id: 'tamagotchi:open_website', defaultActive: false },
+      { id: 'tamagotchi:open_app', defaultActive: false },
+      { id: 'tamagotchi:press_keys', defaultActive: false },
+      { id: 'tamagotchi:media_control', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')

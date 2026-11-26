@@ -277,6 +277,18 @@ export const electronPhoneChatReply = defineInvokeEventa<void, PhoneChatReply>('
 /** The local port, the pairing key, and the Tailscale HTTPS address, for the QR code in Settings. */
 export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string, url?: string }>('eventa:invoke:electron:fairy:phone:info')
 
+/** FAIRY: one fast action on the PC that the owner asked the character for. */
+export type PcActionRequest
+  = | { kind: 'open-website', url: string, browser?: 'default' | 'chrome' | 'edge' | 'firefox' | 'brave' | 'opera' }
+    | { kind: 'open-app', name: string }
+    | { kind: 'press-keys', keys: string }
+    | { kind: 'media', action: 'play-pause' | 'next' | 'previous' | 'volume-up' | 'volume-down' | 'mute' }
+export interface PcActionResult {
+  ok: boolean
+  message: string
+}
+export const electronPcAction = defineInvokeEventa<PcActionResult, PcActionRequest>('eventa:invoke:electron:fairy:pc-action')
+
 /** FAIRY: a beat every few seconds to the main window. While live mode is on, the window decides there whether to look. */
 export const electronLiveModeTick = defineEventa<void>('eventa:event:electron:fairy:live-mode:tick')
 /** FAIRY: starts or stops the capture of the screen every second. Only the main window calls it. */
