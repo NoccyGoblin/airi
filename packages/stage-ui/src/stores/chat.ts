@@ -2,7 +2,7 @@ import type { ChatAttachment, ChatInvokedSkill, ChatOrchestratorRuntimeState, Ch
 import type { GenerationProvider, GenerationRequest } from '@proj-airi/provider-inference'
 import type { WebSocketEventInputs } from '@proj-airi/server-sdk'
 import type { TraceSpan } from '@proj-airi/trace-kit'
-import type { Message } from '@xsai/shared-chat'
+import type { Message, Tool } from '@xsai/shared-chat'
 import type { SyncedPiniaRuntime } from 'pinia-plugin-synced'
 
 import type { ChatHistoryItem, ChatToolReference } from '../types/chat'
@@ -1304,6 +1304,16 @@ export const useChatStore = defineStore('chat', () => {
     },
   })
 
+  /**
+   * FAIRY: the host can narrow the selected tools of each model step, for example to send only the tool groups that
+   * the character opened in this turn. The tools are read again before every step, so a change applies at once.
+   */
+  type StepToolFilter = (sessionId: string, tools: Tool[]) => Tool[]
+  let stepToolFilter: StepToolFilter | undefined
+  function setStepToolFilter(filter: StepToolFilter | undefined) {
+    stepToolFilter = filter
+  }
+
   // One request owns preparation and generation. Cancellation cannot miss asynchronous startup.
   const requests = new Map<string, {
     sessionId: string
@@ -1570,8 +1580,9 @@ export const useChatStore = defineStore('chat', () => {
       stickers,
       tools: async () => {
         const references = collectToolReferences(payload.sessionId, payload.tools)
+        const selected = llmToolsStore.getToolsByNames(...references.map(tool => tool.name))
         return [
-          ...llmToolsStore.getToolsByNames(...references.map(tool => tool.name)),
+          ...(stepToolFilter ? stepToolFilter(payload.sessionId, selected) : selected),
           await createWakeWordTool({ characterId, setWords: wakeWords.setWords }),
           ...(decisions.length
             ? await createJudgeRecipeTool({
@@ -1906,6 +1917,7 @@ export const useChatStore = defineStore('chat', () => {
     notifyConversation,
     submit,
     setMidTurnSteer,
+    setStepToolFilter,
     settleAudioTranscript,
     cancelTurn,
     receiveInterruption,

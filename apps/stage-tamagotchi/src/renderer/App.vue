@@ -77,6 +77,7 @@ import { setupPhoneChatBridge } from './bridges/phone-chat'
 import { setupRoutinesBridge } from './bridges/routines'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
 import { setupStopKeyBridge } from './bridges/stop-key'
+import { setupToolboxBridge } from './bridges/toolbox'
 import { useDevicePermissions } from './composables/use-device-permissions'
 import { useLanguage } from './composables/use-language'
 import { useFullscreenStore } from './stores/fullscreen'
@@ -331,6 +332,8 @@ function createFullStageRuntime() {
   setupMidJobBridge()
   // FAIRY: only the main window shows the character, so only it takes files dropped on her.
   setupFileDropBridge()
+  // FAIRY: only the main window runs turns, so only it narrows their tools to the opened groups.
+  setupToolboxBridge()
 
   return {
     async initialize() {

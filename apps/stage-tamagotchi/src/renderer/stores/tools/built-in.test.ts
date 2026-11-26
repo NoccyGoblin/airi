@@ -61,6 +61,10 @@ vi.mock('./builtin/pc-actions', () => ({
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
   pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'wander_mode', 'play_youtube', 'read_app', 'click_element', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
 }))
+vi.mock('./builtin/toolbox', () => ({
+  TOOLBOX_TOOL_NAME: 'open_toolbox',
+  toolboxTools: vi.fn(async () => [executableTool('open_toolbox')]),
+}))
 vi.mock('./builtin/browser', () => ({
   BROWSER_OPEN_TOOL_NAME: 'browser_open',
   BROWSER_READ_TOOL_NAME: 'browser_read',
@@ -140,6 +144,7 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:browser_back', defaultActive: false },
       { id: 'tamagotchi:browser_scroll', defaultActive: false },
       { id: 'tamagotchi:browser_close', defaultActive: false },
+      { id: 'tamagotchi:open_toolbox', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')
