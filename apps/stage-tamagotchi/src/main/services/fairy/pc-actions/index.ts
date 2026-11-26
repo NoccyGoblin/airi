@@ -15,7 +15,7 @@ import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
 import { Mutex } from 'async-mutex'
-import { app, BrowserWindow, clipboard, screen, shell } from 'electron'
+import { app, BrowserWindow, clipboard, net, screen, shell } from 'electron'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 
 import { electronPcAction, electronPcCapture } from '../../../../shared/eventa'
@@ -26,6 +26,7 @@ import { describeKeyCombination, parseKeyCombination } from './keys'
 import { clickScript, screenPointOf, scrollScript, windowAtScript } from './mouse'
 import { PowerShellHost } from './powershell-host'
 import { centerOf, describeUiTree, parseUiTree, uiTreeScript } from './ui-tree'
+import { parseYouTubeResults, youTubeSearchUrl, youTubeWatchUrl } from './youtube'
 
 /**
  * FAIRY: fast, generic actions on the PC that the owner asks the character for, such as opening a website or an app,
@@ -326,7 +327,44 @@ async function sendDiscordMessage(person: string, message: string) {
   return `Sent the message to ${title} on Discord.`
 }
 
-async function run(request: PcActionRequest): Promise<string> {
+/** YouTube sends its search results in the page only to a browser, so the request looks like one. */
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+}
+
+/** Searches YouTube and opens one of the first videos in the default browser. */
+async function playYouTube(query: string, pick = 1) {
+  if (!query.trim())
+    throw new Error('Say what to play.')
+  const response = await net.fetch(youTubeSearchUrl(query), { headers: BROWSER_HEADERS })
+  if (!response.ok)
+    throw new Error(`YouTube answered ${response.status}.`)
+  const videos = parseYouTubeResults(await response.text())
+  const index = Math.max(1, Math.min(videos.length, Math.trunc(pick))) - 1
+  const video = videos[index]
+  if (!video)
+    throw new Error(`YouTube found no video for "${query}".`)
+  await shell.openExternal(youTubeWatchUrl(video.id))
+  const others = videos.filter(other => other !== video).slice(0, 3).map((other, position) => `${position + 1}. ${other.title}`)
+  return `Opened "${video.title}"${video.channel ? ` by ${video.channel}` : ''} on YouTube in the default browser.${others.length ? ` Other results: ${others.join(' | ')}` : ''}`
+}
+
+/** Counts the owner's stops. An action that began before the last stop does nothing more. */
+let stops = 0
+
+/** Stops the running job: the clicks left in it and the actions that wait for their turn. */
+export function stopPcActions() {
+  stops++
+}
+
+function assertNotStopped(stopsAtStart: number) {
+  if (stops !== stopsAtStart)
+    throw new Error('The owner pressed Escape to stop you, so nothing more was done. Ask what they want now.')
+}
+
+async function run(request: PcActionRequest, stopsAtStart: number): Promise<string> {
+  assertNotStopped(stopsAtStart)
   switch (request.kind) {
     case 'open-website': {
       const url = normalizeWebAddress(request.url)
@@ -394,6 +432,8 @@ async function run(request: PcActionRequest): Promise<string> {
       await sleep(KEY_SETTLE_MS)
       return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} at (${request.x}, ${request.y}) of the screenshot.`
     }
+    case 'play-youtube':
+      return await playYouTube(request.query, request.pick)
     case 'read-window':
       return await readWindow(request.app)
     case 'click-element': {
@@ -420,6 +460,7 @@ async function run(request: PcActionRequest): Promise<string> {
           throw new Error(`AIRI's own window covers [${element.id}] "${element.name}", so nothing was clicked. Ask the owner to move the character or the chat.`)
       }
       for (const element of elements) {
+        assertNotStopped(stopsAtStart)
         await powerShell.run(clickScript(centerOf(element), request.button, request.double))
         await sleep(CLICK_SETTLE_MS)
       }
@@ -453,7 +494,8 @@ export function createPcActionsService(params: { context: ReturnType<typeof crea
   defineInvokeHandler(params.context, electronPcCapture, () => acting.runExclusive(captureForPointing))
   defineInvokeHandler(params.context, electronPcAction, async (request): Promise<PcActionResult> => {
     try {
-      const message = await acting.runExclusive(() => run(request))
+      const stopsAtStart = stops
+      const message = await acting.runExclusive(() => run(request, stopsAtStart))
       log.log(message)
       return { ok: true, message }
     }

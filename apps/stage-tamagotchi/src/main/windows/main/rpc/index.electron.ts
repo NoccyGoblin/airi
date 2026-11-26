@@ -45,6 +45,7 @@ import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { createRoutineScheduler } from '../../../services/fairy/routines'
+import { createStopKeyService } from '../../../services/fairy/stop-key'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
 
 export async function setupMainWindowElectronInvokes(params: {
@@ -95,6 +96,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createLiveModeService({ context, window: params.window }))
   // FAIRY: only the main window runs routines.
   onWindowClosed(params.window, createRoutineScheduler({ context }))
+  // FAIRY: Escape stops the character while she is busy.
+  onWindowClosed(params.window, createStopKeyService({ context }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

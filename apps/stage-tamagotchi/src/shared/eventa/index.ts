@@ -289,6 +289,7 @@ export type PcActionRequest
     | { kind: 'click', captureId: string, x: number, y: number, button: 'left' | 'right', double: boolean }
     | { kind: 'scroll', direction: 'up' | 'down', notches: number }
     | { kind: 'read-window', app?: string }
+    | { kind: 'play-youtube', query: string, pick?: number }
     | { kind: 'click-element', ids: number[], button: 'left' | 'right', double: boolean }
 export interface PcActionResult {
   ok: boolean
@@ -345,6 +346,11 @@ export interface RoutineResult {
 export const electronRoutineAction = defineInvokeEventa<RoutineResult, RoutineRequest>('eventa:invoke:electron:fairy:routine-action')
 /** FAIRY: a routine that is due now. Only the main window gets it, and it runs the routine in the active chat. */
 export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:fairy:routine-due')
+
+/** FAIRY: the main window tells whether the character is busy. Only then Escape stops her, everywhere on the PC. */
+export const electronStopKeyArmed = defineInvokeEventa<void, { armed: boolean }>('eventa:invoke:electron:fairy:stop-key-armed')
+/** FAIRY: the owner pressed Escape while the character was busy. */
+export const electronStopPressed = defineEventa<void>('eventa:event:electron:fairy:stop-pressed')
 
 /** FAIRY: an action in the character's own browser window. Elements are named by the numbers of the last read. */
 export type BrowserRequest

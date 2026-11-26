@@ -23,6 +23,7 @@ export const OPEN_APP_TOOL_NAME = 'open_app'
 export const CLOSE_APP_TOOL_NAME = 'close_app'
 export const TYPE_TEXT_TOOL_NAME = 'type_text'
 export const DISCORD_MESSAGE_TOOL_NAME = 'discord_message'
+export const PLAY_YOUTUBE_TOOL_NAME = 'play_youtube'
 export const READ_APP_TOOL_NAME = 'read_app'
 export const CLICK_ELEMENT_TOOL_NAME = 'click_element'
 export const CLICK_ON_TOOL_NAME = 'click_on'
@@ -147,6 +148,20 @@ const tools: Promise<Tool>[] = [
     parameters: z.object({
       keys: z.string().describe('One shortcut, keys joined with "+", for example "ctrl+shift+t".'),
       group_send_approved: z.boolean().describe('True only when the owner\'s own words said to send the message to this group or channel. Otherwise false.'),
+    }),
+  }),
+  tool({
+    name: PLAY_YOUTUBE_TOOL_NAME,
+    description: [
+      'Play a song or a video on YouTube by name, for example "Blinding Lights" or "lofi beats to study to". It searches YouTube and opens the best result in the owner\'s browser in one step.',
+      'When the owner leaves the choice to you, pick something yourself. The result lists other matches, so you can play another one with pick.',
+      'Use media_control to pause, skip, or change the volume afterwards.',
+      ONLY_WHEN_ASKED,
+    ].join(' '),
+    execute: async (input: { query: string, pick: number }) => act({ kind: 'play-youtube', query: input.query, pick: input.pick }),
+    parameters: z.object({
+      query: z.string().describe('The search words, for example the song and the artist.'),
+      pick: z.number().int().min(1).max(5).describe('Which result to play. 1 is the best match.'),
     }),
   }),
   tool({

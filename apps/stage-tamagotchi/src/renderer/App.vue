@@ -73,6 +73,7 @@ import { setupLiveModeBridge } from './bridges/live-mode'
 import { setupPhoneChatBridge } from './bridges/phone-chat'
 import { setupRoutinesBridge } from './bridges/routines'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
+import { setupStopKeyBridge } from './bridges/stop-key'
 import { useDevicePermissions } from './composables/use-device-permissions'
 import { useLanguage } from './composables/use-language'
 import { useFullscreenStore } from './stores/fullscreen'
@@ -319,6 +320,8 @@ function createFullStageRuntime() {
   setupLiveModeBridge(context.value)
   // FAIRY: only the main window gets due routines, so only it runs them.
   setupRoutinesBridge(context.value)
+  // FAIRY: only the main window plays her voice and runs her turns, so only it stops them on Escape.
+  setupStopKeyBridge(context.value)
 
   return {
     async initialize() {
