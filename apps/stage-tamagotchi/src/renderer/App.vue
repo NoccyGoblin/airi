@@ -69,8 +69,10 @@ import {
 import { electronPluginToolsChanged } from '../shared/eventa/plugin/tools'
 import { setupDiscordBridge } from './bridges/discord'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
+import { setupFileDropBridge } from './bridges/file-drop'
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
 import { setupLiveModeBridge } from './bridges/live-mode'
+import { setupMidJobBridge } from './bridges/mid-job'
 import { setupPhoneChatBridge } from './bridges/phone-chat'
 import { setupRoutinesBridge } from './bridges/routines'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
@@ -325,6 +327,10 @@ function createFullStageRuntime() {
   setupStopKeyBridge(context.value)
   // FAIRY: only the main window answers the character's Discord bot.
   setupDiscordBridge(context.value)
+  // FAIRY: only the main window runs turns, so only it lets the owner talk to her during a job.
+  setupMidJobBridge()
+  // FAIRY: only the main window shows the character, so only it takes files dropped on her.
+  setupFileDropBridge()
 
   return {
     async initialize() {

@@ -349,6 +349,9 @@ export const electronRoutineAction = defineInvokeEventa<RoutineResult, RoutineRe
 /** FAIRY: a routine that is due now. Only the main window gets it, and it runs the routine in the active chat. */
 export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:fairy:routine-due')
 
+/** FAIRY: turns wander mode on or off, or reads it when `enabled` is missing. */
+export const electronWanderMode = defineInvokeEventa<{ enabled: boolean }, { enabled?: boolean } | undefined>('eventa:invoke:electron:fairy:wander-mode')
+
 /** FAIRY: something said to the character on Discord, in a text channel or in a voice call. */
 export interface DiscordTurnRequest {
   id: string

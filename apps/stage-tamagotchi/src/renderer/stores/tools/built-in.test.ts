@@ -50,6 +50,7 @@ vi.mock('./builtin/pc-actions', () => ({
   CLOSE_APP_TOOL_NAME: 'close_app',
   TYPE_TEXT_TOOL_NAME: 'type_text',
   DISCORD_MESSAGE_TOOL_NAME: 'discord_message',
+  WANDER_MODE_TOOL_NAME: 'wander_mode',
   PLAY_YOUTUBE_TOOL_NAME: 'play_youtube',
   READ_APP_TOOL_NAME: 'read_app',
   CLICK_ELEMENT_TOOL_NAME: 'click_element',
@@ -58,7 +59,7 @@ vi.mock('./builtin/pc-actions', () => ({
   SCROLL_TOOL_NAME: 'scroll',
   PRESS_KEYS_TOOL_NAME: 'press_keys',
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
-  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'play_youtube', 'read_app', 'click_element', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
+  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'wander_mode', 'play_youtube', 'read_app', 'click_element', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
 }))
 vi.mock('./builtin/browser', () => ({
   BROWSER_OPEN_TOOL_NAME: 'browser_open',
@@ -119,6 +120,7 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:discord_message', defaultActive: false },
       { id: 'tamagotchi:type_text', defaultActive: false },
       { id: 'tamagotchi:press_keys', defaultActive: false },
+      { id: 'tamagotchi:wander_mode', defaultActive: false },
       { id: 'tamagotchi:play_youtube', defaultActive: false },
       { id: 'tamagotchi:read_app', defaultActive: false },
       { id: 'tamagotchi:click_element', defaultActive: false },

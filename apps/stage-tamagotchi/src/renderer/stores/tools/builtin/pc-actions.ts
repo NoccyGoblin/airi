@@ -10,7 +10,8 @@ import { useConsciousnessStore } from '@proj-airi/stage-ui/stores/modules/consci
 import { tool } from '@xsai/tool'
 import { z } from 'zod'
 
-import { electronPcAction, electronPcCapture } from '../../../../shared/eventa'
+import { electronPcAction, electronPcCapture, electronWanderMode } from '../../../../shared/eventa'
+import { carryOwnerNotes } from './mid-job-tools'
 import { describingConversation, parsePointingAnswer, pointingConversation } from './pointing'
 
 /**
@@ -24,6 +25,7 @@ export const CLOSE_APP_TOOL_NAME = 'close_app'
 export const TYPE_TEXT_TOOL_NAME = 'type_text'
 export const DISCORD_MESSAGE_TOOL_NAME = 'discord_message'
 export const PLAY_YOUTUBE_TOOL_NAME = 'play_youtube'
+export const WANDER_MODE_TOOL_NAME = 'wander_mode'
 export const READ_APP_TOOL_NAME = 'read_app'
 export const CLICK_ELEMENT_TOOL_NAME = 'click_element'
 export const CLICK_ON_TOOL_NAME = 'click_on'
@@ -151,6 +153,18 @@ const tools: Promise<Tool>[] = [
     }),
   }),
   tool({
+    name: WANDER_MODE_TOOL_NAME,
+    description: [
+      'Turn wander mode on or off. In wander mode you float around the owner\'s screen by yourself and rest in a spot now and then. You stop while the mouse is on you.',
+      'Use it when the owner asks you to fly around, roam, or wander, or to stay still in one place.',
+    ].join(' '),
+    execute: async (input: { on: boolean }) => {
+      const result = await defineInvoke(createContext(window.electron.ipcRenderer).context, electronWanderMode)({ enabled: input.on })
+      return JSON.stringify({ ok: true, message: `Wander mode is ${result.enabled ? 'on' : 'off'}.` })
+    },
+    parameters: z.object({ on: z.boolean().describe('True to start wandering, false to stay in one place.') }),
+  }),
+  tool({
     name: PLAY_YOUTUBE_TOOL_NAME,
     description: [
       'Play a song or a video on YouTube by name, for example "Blinding Lights" or "lofi beats to study to". It searches YouTube and opens the best result in the owner\'s browser in one step.',
@@ -252,4 +266,4 @@ const tools: Promise<Tool>[] = [
   }),
 ]
 
-export const pcActionTools = async () => Promise.all(tools)
+export const pcActionTools = async () => carryOwnerNotes(await Promise.all(tools))

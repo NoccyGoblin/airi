@@ -8,6 +8,7 @@ import { tool } from '@xsai/tool'
 import { z } from 'zod'
 
 import { electronFileAction } from '../../../../shared/eventa'
+import { carryOwnerNotes } from './mid-job-tools'
 
 /**
  * FAIRY: file tools in the owner's own folders (Desktop, Documents, Downloads, Pictures, Videos, Music).
@@ -105,4 +106,4 @@ const tools: Promise<Tool>[] = [
   }),
 ]
 
-export const fileTools = async () => Promise.all(tools)
+export const fileTools = async () => carryOwnerNotes(await Promise.all(tools))

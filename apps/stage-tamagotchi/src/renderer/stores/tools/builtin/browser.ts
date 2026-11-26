@@ -9,6 +9,7 @@ import { tool } from '@xsai/tool'
 import { z } from 'zod'
 
 import { electronBrowserAction } from '../../../../shared/eventa'
+import { carryOwnerNotes } from './mid-job-tools'
 
 /**
  * FAIRY: the character's own browser window, for tasks on websites: read a page, click links and buttons, and fill in
@@ -93,4 +94,4 @@ const tools: Promise<Tool>[] = [
   }),
 ]
 
-export const browserTools = async () => Promise.all(tools)
+export const browserTools = async () => carryOwnerNotes(await Promise.all(tools))

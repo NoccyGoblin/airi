@@ -47,6 +47,7 @@ import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { createRoutineScheduler } from '../../../services/fairy/routines'
 import { createStopKeyService } from '../../../services/fairy/stop-key'
+import { createWanderService } from '../../../services/fairy/wander'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
 
 export async function setupMainWindowElectronInvokes(params: {
@@ -101,6 +102,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createStopKeyService({ context }))
   // FAIRY: the character's own Discord bot. It starts when fairy-data/discord-bot.json has a token.
   onWindowClosed(params.window, createDiscordBotService({ context }))
+  // FAIRY: wander mode floats the character's window around the screen.
+  onWindowClosed(params.window, createWanderService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

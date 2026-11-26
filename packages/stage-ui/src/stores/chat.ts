@@ -1629,10 +1629,30 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  /**
+   * FAIRY: the host can take an owner's message while a turn works with tools, so the running turn reads it in its
+   * next tool result instead of after the job. The host calls `fallback` for a message that the turn did not read.
+   */
+  type MidTurnSteer = (payload: ChatSendPayload & { messageId: string }, fallback: () => Promise<{ sessionId: string, messageId: string }>) => Promise<{ sessionId: string, messageId: string }> | undefined
+  let midTurnSteer: MidTurnSteer | undefined
+  function setMidTurnSteer(steer: MidTurnSteer | undefined) {
+    midTurnSteer = steer
+  }
+
   /** Returns the storage receipt while generation continues in the elected leader. */
   async function submit(payload: ChatSendPayload & { messageId: string }) {
     assertSessionOpen(payload.sessionId)
     assertChatReady(payload.sessionId)
+    // A message with audio or attachments needs its own turn. Only plain text joins a running job.
+    if (midTurnSteer && isOwnerSession(payload.sessionId) && !payload.attachments?.length && !payload.audioTranscriptPending) {
+      const steered = midTurnSteer(payload, () => submitQueued(payload))
+      if (steered)
+        return steered
+    }
+    return submitQueued(payload)
+  }
+
+  async function submitQueued(payload: ChatSendPayload & { messageId: string }) {
     const key = JSON.stringify([payload.sessionId, payload.messageId])
     if (payload.audioTranscriptPending && !liveTranscripts.has(key))
       liveTranscripts.set(key, Promise.withResolvers<void>())
@@ -1885,6 +1905,7 @@ export const useChatStore = defineStore('chat', () => {
     dismissBackgroundTask,
     notifyConversation,
     submit,
+    setMidTurnSteer,
     settleAudioTranscript,
     cancelTurn,
     receiveInterruption,
