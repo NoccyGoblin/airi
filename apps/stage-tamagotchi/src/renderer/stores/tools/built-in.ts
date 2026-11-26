@@ -1,10 +1,12 @@
 import type { ExecutableTool } from '@proj-airi/stage-ui/stores/ai/chat-llm/tools'
 import type { ChatToolReference } from '@proj-airi/stage-ui/types/chat'
+import type { Tool } from '@xsai/shared-chat'
 
 import { useLlmToolsStore } from '@proj-airi/stage-ui/stores/ai/chat-llm/tools'
 import { TOOL_ICONS } from '@proj-airi/stage-ui/tools/icons'
 import { defineStore } from 'pinia'
 
+import { BROWSER_BACK_TOOL_NAME, BROWSER_CLICK_TOOL_NAME, BROWSER_CLOSE_TOOL_NAME, BROWSER_OPEN_TOOL_NAME, BROWSER_READ_TOOL_NAME, BROWSER_SCROLL_TOOL_NAME, BROWSER_TYPE_TOOL_NAME, browserTools } from './builtin/browser'
 import { fileTools, FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './builtin/files'
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
@@ -50,6 +52,14 @@ export const widgetToolReferences = [
   { name: OPEN_FILE_TOOL_NAME },
   { name: MOVE_FILES_TOOL_NAME },
   { name: TRASH_FILES_TOOL_NAME },
+  // FAIRY: the character's own browser window for tasks on websites.
+  { name: BROWSER_OPEN_TOOL_NAME },
+  { name: BROWSER_READ_TOOL_NAME },
+  { name: BROWSER_CLICK_TOOL_NAME },
+  { name: BROWSER_TYPE_TOOL_NAME },
+  { name: BROWSER_BACK_TOOL_NAME },
+  { name: BROWSER_SCROLL_TOOL_NAME },
+  { name: BROWSER_CLOSE_TOOL_NAME },
 ] satisfies ChatToolReference[]
 
 export const artistryToolReferences = [
@@ -69,7 +79,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
 
   async function refresh() {
     // Each module declares one icon that the chat shows on every call of its tools.
-    const groups = await Promise.all([
+    const groups: Array<{ tools: Tool[], icon: string }> = await Promise.all([
       imageJournalTools().then(tools => ({ tools, icon: TOOL_ICONS.imageJournal })),
       widgetsTools().then(tools => ({ tools, icon: TOOL_ICONS.widgets })),
       weatherTools().then(tools => ({ tools, icon: TOOL_ICONS.weather })),
@@ -79,6 +89,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       webKnowledgeTools().then(tools => ({ tools, icon: TOOL_ICONS.search })),
       pcActionTools().then(tools => ({ tools, icon: TOOL_ICONS.computerUse })),
       fileTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
+      browserTools().then(tools => ({ tools, icon: TOOL_ICONS.search })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

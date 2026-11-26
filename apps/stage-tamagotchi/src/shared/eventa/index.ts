@@ -344,6 +344,22 @@ export const electronRoutineAction = defineInvokeEventa<RoutineResult, RoutineRe
 /** FAIRY: a routine that is due now. Only the main window gets it, and it runs the routine in the active chat. */
 export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:fairy:routine-due')
 
+/** FAIRY: an action in the character's own browser window. Elements are named by the numbers of the last read. */
+export type BrowserRequest
+  = | { kind: 'open', url: string }
+    | { kind: 'read' }
+    | { kind: 'click', id: number }
+    | { kind: 'type', id: number, text: string, submit: boolean }
+    | { kind: 'back' }
+    | { kind: 'scroll', direction: 'up' | 'down' }
+    | { kind: 'close' }
+export interface BrowserResult {
+  ok: boolean
+  /** The page as text with numbered elements, or what went wrong. */
+  text: string
+}
+export const electronBrowserAction = defineInvokeEventa<BrowserResult, BrowserRequest>('eventa:invoke:electron:fairy:browser-action')
+
 /** FAIRY: a screenshot for pointing. A click names its `captureId`, so the point maps to the right display. */
 export interface PcCapture extends LookAtScreenResult {
   captureId: string

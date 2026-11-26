@@ -57,6 +57,16 @@ vi.mock('./builtin/pc-actions', () => ({
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
   pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
 }))
+vi.mock('./builtin/browser', () => ({
+  BROWSER_OPEN_TOOL_NAME: 'browser_open',
+  BROWSER_READ_TOOL_NAME: 'browser_read',
+  BROWSER_CLICK_TOOL_NAME: 'browser_click',
+  BROWSER_TYPE_TOOL_NAME: 'browser_type',
+  BROWSER_BACK_TOOL_NAME: 'browser_back',
+  BROWSER_SCROLL_TOOL_NAME: 'browser_scroll',
+  BROWSER_CLOSE_TOOL_NAME: 'browser_close',
+  browserTools: vi.fn(async () => ['browser_open', 'browser_read', 'browser_click', 'browser_type', 'browser_back', 'browser_scroll', 'browser_close'].map(executableTool)),
+}))
 vi.mock('./builtin/files', () => ({
   FIND_FILES_TOOL_NAME: 'find_files',
   LIST_FOLDER_TOOL_NAME: 'list_folder',
@@ -115,6 +125,13 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:open_file', defaultActive: false },
       { id: 'tamagotchi:move_files', defaultActive: false },
       { id: 'tamagotchi:trash_files', defaultActive: false },
+      { id: 'tamagotchi:browser_open', defaultActive: false },
+      { id: 'tamagotchi:browser_read', defaultActive: false },
+      { id: 'tamagotchi:browser_click', defaultActive: false },
+      { id: 'tamagotchi:browser_type', defaultActive: false },
+      { id: 'tamagotchi:browser_back', defaultActive: false },
+      { id: 'tamagotchi:browser_scroll', defaultActive: false },
+      { id: 'tamagotchi:browser_close', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')
