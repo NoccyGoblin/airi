@@ -34,6 +34,12 @@ const log = useLogg('fairy-browser').useGlobalConfig()
 const acting = new Mutex()
 
 let browserWindow: BrowserWindow | undefined
+/** The name of the character who uses the browser, for its window title. The last open sets it. */
+let character = 'AIRI'
+
+function titleFor(pageTitle?: string) {
+  return pageTitle ? `${pageTitle} - ${character}'s browser` : `${character}'s browser`
+}
 
 function isWebAddress(url: string) {
   return url.startsWith('https://') || url.startsWith('http://')
@@ -54,7 +60,7 @@ function getBrowser(): BrowserWindow {
   const window = new BrowserWindow({
     width: 1200,
     height: 850,
-    title: 'Iru\'s browser',
+    title: titleFor(),
     autoHideMenuBar: true,
     webPreferences: { session: browserSession, sandbox: true, contextIsolation: true, nodeIntegration: false, spellcheck: false },
   })
@@ -67,6 +73,11 @@ function getBrowser(): BrowserWindow {
   window.webContents.on('will-navigate', (event, url) => {
     if (!isWebAddress(url))
       event.preventDefault()
+  })
+  // The title shows whose browser this is, next to the page title.
+  window.on('page-title-updated', (event, pageTitle) => {
+    event.preventDefault()
+    window.setTitle(titleFor(pageTitle))
   })
   window.on('closed', () => {
     browserWindow = undefined
@@ -137,7 +148,10 @@ async function run(request: BrowserRequest): Promise<string> {
   switch (request.kind) {
     case 'open': {
       const url = normalizeWebAddress(request.url)
+      if (request.character?.trim())
+        character = request.character.trim()
       const window = getBrowser()
+      window.setTitle(titleFor(window.webContents.getTitle()))
       window.show()
       await Promise.race([
         window.loadURL(url).catch(() => {}),

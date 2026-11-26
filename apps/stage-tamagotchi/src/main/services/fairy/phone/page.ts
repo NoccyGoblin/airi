@@ -1,5 +1,5 @@
 /**
- * FAIRY: the phone page. One self-contained HTML file: chat with the Iru that runs on the PC, and send a photo from the
+ * FAIRY: the phone page. One self-contained HTML file: chat with the character that runs on the PC, and send a photo from the
  * camera or the gallery. The PC serves it on the Tailscale network only (see ./index.ts).
  *
  * The pairing key comes in the first link (`?key=...`) and stays in the phone's localStorage.
@@ -12,7 +12,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 <meta name="theme-color" content="#16131f">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>Iru</title>
+<title>AIRI</title>
 <style>
   :root { color-scheme: dark; --bg:#16131f; --panel:#221d30; --me:#6d4bd8; --her:#2c2540; --text:#efeaff; --muted:#9a91b8; }
   * { box-sizing: border-box; }
@@ -41,13 +41,13 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 </style>
 </head>
 <body>
-<header>🧚 Iru <small id="status">connecting…</small><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
+<header>🧚 <span id="name">AIRI</span> <small id="status">connecting…</small><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
 <div id="log"></div>
 <div id="preview"><img id="previewImg" alt=""><button type="button" id="clearImg" aria-label="Remove photo">✕</button></div>
 <form id="form">
   <button type="button" id="cam" aria-label="Take a photo">📷</button>
   <button type="button" id="gal" aria-label="Pick a photo">🖼️</button>
-  <textarea id="text" rows="1" placeholder="Message Iru…"></textarea>
+  <textarea id="text" rows="1" placeholder="Message…"></textarea>
   <button type="button" class="mic" id="mic" aria-label="Hold to talk">🎤</button>
   <button class="send" id="send" aria-label="Send">➤</button>
   <input id="camInput" type="file" accept="image/*" capture="environment">
@@ -78,10 +78,20 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 
   async function api(path, body) {
     const res = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'X-Fairy-Key': key }, body: body ? JSON.stringify(body) : undefined })
-    if (res.status === 401) throw new Error('This phone is not paired. Scan the QR code in Iru on your PC again.')
+    if (res.status === 401) throw new Error('This phone is not paired. Scan the QR code in AIRI on your PC again.')
     const data = await res.json().catch(() => ({}))
+    if (data.character) showName(data.character)
     if (!res.ok || data.ok === false) throw new Error(data.error || ('Error ' + res.status))
     return data
+  }
+
+  // The name of the character in the active chat on the PC. Every answer brings it, so a switch shows at once.
+  let name = 'AIRI'
+  function showName(value) {
+    name = value
+    $('name').textContent = value
+    document.title = value
+    text.placeholder = 'Message ' + value + '…'
   }
 
   async function loadHistory() {
@@ -90,7 +100,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
       log.innerHTML = ''
       for (const m of data.messages) add(m.role, m.text)
       status.textContent = 'online'
-    } catch (e) { status.textContent = 'offline'; note(e.message || 'Iru is not reachable. Is your PC on and Iru running?') }
+    } catch (e) { status.textContent = 'offline'; note(e.message || name + ' is not reachable. Is your PC on and AIRI running?') }
   }
 
   // Photos are shrunk on the phone, so they upload fast over mobile data.
@@ -139,7 +149,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 
   async function ask(body, onReply) {
     send.disabled = true; mic.disabled = true
-    const waiting = note('Iru is thinking…')
+    const waiting = note(name + ' is thinking…')
     try {
       const data = await api('./api/send', { ...body, speak: voiceOn })
       waiting.remove()
@@ -214,7 +224,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   mic.addEventListener('contextmenu', e => e.preventDefault())
   text.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer:fine)').matches) { e.preventDefault(); $('form').requestSubmit() } })
 
-  if (!key) note('Open this page from the QR code in Iru on your PC to pair this phone.')
+  if (!key) note('Open this page from the QR code in AIRI on your PC to pair this phone.')
   else loadHistory()
 })()
 </script>
@@ -223,8 +233,8 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 `
 
 export const PHONE_MANIFEST = JSON.stringify({
-  name: 'Iru',
-  short_name: 'Iru',
+  name: 'AIRI',
+  short_name: 'AIRI',
   start_url: './',
   display: 'standalone',
   background_color: '#16131f',

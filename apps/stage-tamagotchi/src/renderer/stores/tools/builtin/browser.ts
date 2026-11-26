@@ -4,6 +4,7 @@ import type { BrowserRequest, BrowserResult } from '../../../../shared/eventa'
 
 import { defineInvoke } from '@moeru/eventa'
 import { createContext } from '@moeru/eventa/adapters/electron/renderer'
+import { useAiriCardStore } from '@proj-airi/stage-ui/stores/modules/airi-card'
 import { tool } from '@xsai/tool'
 import { z } from 'zod'
 
@@ -44,7 +45,10 @@ const tools: Promise<Tool>[] = [
       'Returns the page text and its numbered links, buttons, and fields.',
       RULES,
     ].join(' '),
-    execute: async (input: { url: string }) => act({ kind: 'open', url: input.url }),
+    execute: async (input: { url: string }) => {
+      const cards = useAiriCardStore()
+      return act({ kind: 'open', url: input.url, character: cards.activeCard?.name })
+    },
     parameters: z.object({ url: z.string().describe('The web address, for example "wikipedia.org" or a full https address.') }),
   }),
   tool({

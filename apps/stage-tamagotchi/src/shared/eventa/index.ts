@@ -270,6 +270,8 @@ export interface PhoneChatReply {
   /** A data URL of the spoken reply. It is missing when speech is not set up on the PC. */
   speech?: string
   messages?: { role: 'user' | 'assistant', text: string }[]
+  /** The name of the character in the active chat, so the page shows who answers. */
+  character?: string
   error?: string
 }
 export const electronPhoneChatRequest = defineEventa<PhoneChatRequest>('eventa:event:electron:fairy:phone:request')
@@ -354,7 +356,7 @@ export const electronStopPressed = defineEventa<void>('eventa:event:electron:fai
 
 /** FAIRY: an action in the character's own browser window. Elements are named by the numbers of the last read. */
 export type BrowserRequest
-  = | { kind: 'open', url: string }
+  = | { kind: 'open', url: string, character?: string }
     | { kind: 'read' }
     | { kind: 'click', id: number }
     | { kind: 'type', id: number, text: string, submit: boolean }

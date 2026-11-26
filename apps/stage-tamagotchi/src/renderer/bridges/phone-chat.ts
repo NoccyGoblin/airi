@@ -99,6 +99,12 @@ async function toDataUrl(audio: Blob) {
   return `data:${audioType(bytes)};base64,${btoa(binary)}`
 }
 
+/** The name of the character in a session, for the phone page. */
+function characterNameOf(sessionId: string): string | undefined {
+  const [characterId] = useChatSessionStore().characterMembersOf(sessionId)
+  return characterId ? useAiriCardStore().getCard(characterId)?.name : undefined
+}
+
 /** Speaks the reply with the voice of the character in the session. Returns nothing when speech is not set up. */
 async function speak(sessionId: string, text: string, signal: AbortSignal): Promise<string | undefined> {
   const [characterId] = useChatSessionStore().characterMembersOf(sessionId)
@@ -116,13 +122,13 @@ async function speak(sessionId: string, text: string, signal: AbortSignal): Prom
  */
 export function setupPhoneChatBridge(context: RendererContext) {
   const reply = defineInvoke(context, electronPhoneChatReply)
-  const send = (answer: PhoneChatReply) => reply(answer).catch(error => console.warn('[phone] reply failed', errorMessageFrom(error)))
+  const send = (answer: PhoneChatReply, sessionId: string) => reply({ ...answer, character: characterNameOf(sessionId) }).catch(error => console.warn('[phone] reply failed', errorMessageFrom(error)))
 
   async function answer(request: PhoneChatRequest, sessionId: string): Promise<PhoneChatReply> {
     const signal = AbortSignal.timeout(VOICE_TIMEOUT_MS)
     const heard = request.audio ? await transcribe(request.audio, signal) : undefined
     if (request.audio && !heard)
-      return { id: request.id, ok: false, error: 'Iru did not catch that. Try again a bit closer to the mic.' }
+      return { id: request.id, ok: false, error: 'That was not clear. Try again a bit closer to the mic.' }
 
     const match = request.image ? /^data:(image\/[\w+]+);base64,(.+)$/.exec(request.image) : null
     const result = await useChatStore().send({
@@ -153,13 +159,13 @@ export function setupPhoneChatBridge(context: RendererContext) {
     try {
       if (request.kind === 'history') {
         const messages = sessions.sessionMessages[sessionId] ?? []
-        await send({ id: request.id, ok: true, messages: toPhoneMessages(messages.slice(-HISTORY_LENGTH)) })
+        await send({ id: request.id, ok: true, messages: toPhoneMessages(messages.slice(-HISTORY_LENGTH)) }, sessionId)
         return
       }
-      await send(await answer(request, sessionId))
+      await send(await answer(request, sessionId), sessionId)
     }
     catch (error) {
-      await send({ id: request.id, ok: false, error: errorMessageFrom(error) ?? 'Iru could not answer.' })
+      await send({ id: request.id, ok: false, error: errorMessageFrom(error) ?? 'No answer came.' }, sessionId)
     }
   })
 }

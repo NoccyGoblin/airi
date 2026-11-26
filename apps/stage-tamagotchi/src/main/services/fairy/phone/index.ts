@@ -20,13 +20,13 @@ import { FAIRY_DATA_DIR } from '../memory-files'
 import { PHONE_ICON_SVG, PHONE_MANIFEST, PHONE_PAGE_HTML } from './page'
 
 /**
- * FAIRY: the phone page. The PC Iru serves a chat page that a phone opens over Tailscale, so there is one Iru with one
+ * FAIRY: the phone page. The PC serves a chat page that a phone opens over Tailscale, so there is one character with one
  * memory, and the phone is only a window to her.
  *
  * - The server listens on 127.0.0.1 only. `tailscale serve` forwards the private Tailscale address to it with HTTPS,
  *   so it is never on the local network or the internet.
  * - Every API call needs the pairing key from `fairy-data/phone/key.txt` (it comes in the QR code link).
- * - A message goes to the main window, which sends it into the active chat and returns Iru's reply.
+ * - A message goes to the main window, which sends it into the active chat and returns the character's reply.
  */
 
 export const PHONE_PORT = 7461
@@ -69,12 +69,12 @@ const pending = new Map<string, (reply: PhoneChatReply) => void>()
 
 function askMainWindow(request: Omit<PhoneChatRequest, 'id'>): Promise<PhoneChatReply> {
   if (!mainContext)
-    return Promise.resolve({ id: '', ok: false, error: 'Iru is still starting. Try again in a moment.' })
+    return Promise.resolve({ id: '', ok: false, error: 'AIRI is still starting. Try again in a moment.' })
   const id = randomUUID()
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       pending.delete(id)
-      resolve({ id, ok: false, error: 'Iru took too long to answer.' })
+      resolve({ id, ok: false, error: 'The answer took too long.' })
     }, REPLY_TIMEOUT_MS)
     pending.set(id, (reply) => {
       clearTimeout(timer)
