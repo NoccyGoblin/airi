@@ -19,6 +19,7 @@ type RendererContext = ReturnType<typeof createContext>['context']
 const DISCORD_RATE = 48_000
 const SPEECH_TIMEOUT_MS = 60_000
 const SESSION_KEY_PREFIX = 'fairy/discord-session/'
+const DISCORD_BINDING = 'discord'
 
 /**
  * The note before each Discord line. It says where the words come from and who said them. It sets no rules for how
@@ -39,14 +40,19 @@ function characterIdFor(name: string): string | undefined {
   return match?.[0] ?? cards.activeCardId
 }
 
-/** Her own Discord chat on the PC, apart from the owner's private chats with her. It is made once and kept. */
+/**
+ * Her own Discord chat on the PC, apart from the owner's private chats with her. It is made once and kept.
+ *
+ * The Discord binding makes it a scene: AIRI never speaks its replies on the PC, and it cannot start the owner's
+ * recipes. See `isOwnerSession` in the stage-ui chat store.
+ */
 async function discordSessionOf(characterId: string): Promise<string> {
   const sessions = useChatSessionStore()
   const key = SESSION_KEY_PREFIX + characterId
   const saved = localStorage.getItem(key)
-  if (saved && await sessions.loadSession(saved))
+  if (saved && sessions.sessionMetas[saved]?.bindings?.includes(DISCORD_BINDING) && await sessions.loadSession(saved))
     return saved
-  const sessionId = await sessions.createSession(characterId, { setActive: false, title: 'Discord' })
+  const sessionId = await sessions.createSession(characterId, { setActive: false, title: 'Discord', bindings: [DISCORD_BINDING] })
   localStorage.setItem(key, sessionId)
   return sessionId
 }

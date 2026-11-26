@@ -186,6 +186,7 @@ export function createDiscordBotService(params: { context: ReturnType<typeof cre
     if (!member || member.user.bot)
       return
     call.listening.add(userId)
+    log.log(`${member.displayName} started talking`)
     try {
       const opus = call.connection.receiver.subscribe(userId, { end: { behavior: EndBehaviorType.AfterSilence, duration: END_OF_LINE_MS } })
       const decoder = new prism.opus.Decoder({ frameSize: 960, channels: 2, rate: 48_000 })
@@ -200,12 +201,17 @@ export function createDiscordBotService(params: { context: ReturnType<typeof cre
             opus.destroy()
         })
         decoder.once('end', () => resolve())
-        decoder.once('error', () => resolve())
+        decoder.once('error', (error) => {
+          log.warn(`could not decode the voice of ${member.displayName}: ${errorMessageFrom(error)}`)
+          resolve()
+        })
         opus.once('close', () => resolve())
       })
       const pcm = new Uint8Array(Buffer.concat(chunks))
-      if (discordPcmSeconds(pcm) < MIN_LINE_SECONDS)
+      if (discordPcmSeconds(pcm) < MIN_LINE_SECONDS) {
+        log.log(`dropped a line of ${member.displayName}: ${discordPcmSeconds(pcm).toFixed(1)} s is too short`)
         return
+      }
       const text = await transcribe(pcm)
       if (isNoise(text))
         return
