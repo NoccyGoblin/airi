@@ -70,8 +70,9 @@ const tools: Promise<Tool>[] = [
     description: [
       'Type text into the app in front on the owner\'s PC, where its text cursor is, for example a search box or a chat box.',
       'It only types and never sends. Press enter with press_keys to send or confirm.',
-      'To message someone on Discord: open_app "Discord", press_keys ctrl+k, type_text the person\'s name, press_keys enter, then type_text the message.',
-      'Before you press enter to send a message to another person, tell the owner who gets it and the exact text, and wait until they say yes.',
+      'To message one person on Discord: open_app "Discord", press_keys ctrl+k, type_text "@" followed by the person\'s name (the "@" shows only people, not groups that the person is in),',
+      'press_keys enter, type_text the message, then press_keys enter to send.',
+      'Send to a group chat or a server channel only when the owner said to send it to that group.',
       'Write the message in the owner\'s voice, not as yourself, unless they ask otherwise.',
       ONLY_WHEN_ASKED,
     ].join(' '),
@@ -85,10 +86,15 @@ const tools: Promise<Tool>[] = [
       'Examples: new tab ctrl+t, close tab ctrl+w, reopen tab ctrl+shift+t, next tab ctrl+tab, reload f5, full screen f11,',
       'switch app alt+tab, show desktop win+d, find ctrl+f, undo ctrl+z. Call it again for a second shortcut.',
       'Alt+F4 and Shift+Delete are blocked.',
+      'In Discord, enter in a group chat or server channel is blocked unless group_send_approved is true.',
       ONLY_WHEN_ASKED,
     ].join(' '),
-    execute: async (input: { keys: string }) => act({ kind: 'press-keys', keys: input.keys }),
-    parameters: z.object({ keys: z.string().describe('One shortcut, keys joined with "+", for example "ctrl+shift+t".') }),
+    execute: async (input: { keys: string, group_send_approved: boolean }) =>
+      act({ kind: 'press-keys', keys: input.keys, groupSendApproved: input.group_send_approved }),
+    parameters: z.object({
+      keys: z.string().describe('One shortcut, keys joined with "+", for example "ctrl+shift+t".'),
+      group_send_approved: z.boolean().describe('True only when the owner\'s own words said to send the message to this group or channel. Otherwise false.'),
+    }),
   }),
   tool({
     name: MEDIA_CONTROL_TOOL_NAME,

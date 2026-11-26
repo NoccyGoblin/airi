@@ -16,6 +16,7 @@ import { uIOhook, UiohookKey } from 'uiohook-napi'
 
 import { electronPcAction } from '../../../../shared/eventa'
 import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
+import { chatKindOf } from './chats'
 import { describeKeyCombination, parseKeyCombination } from './keys'
 
 /**
@@ -56,6 +57,32 @@ async function listStartApps(): Promise<StartApp[]> {
     .map(app => ({ name: app.Name.trim(), appId: app.AppID }))
   startApps = { at: Date.now(), apps }
   return apps
+}
+
+/** True after Ctrl+K in Discord, until Enter or Escape. Then Enter opens a chat instead of sending. */
+let discordSwitcherOpen = false
+
+const FOREGROUND_SCRIPT = `
+Add-Type -Namespace Fairy -Name Front -MemberDefinition @'
+[DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();
+[DllImport("user32.dll")] public static extern int GetWindowThreadProcessId(System.IntPtr hWnd, out int processId);
+'@
+$id = 0
+[void][Fairy.Front]::GetWindowThreadProcessId([Fairy.Front]::GetForegroundWindow(), [ref]$id)
+$process = Get-Process -Id $id
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+@{ processName = $process.ProcessName; title = $process.MainWindowTitle } | ConvertTo-Json -Compress
+`
+
+/** The process and title of the window in front, or nothing when it cannot be read. */
+async function foregroundWindow(): Promise<{ processName: string, title: string } | undefined> {
+  try {
+    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(FOREGROUND_SCRIPT, 'utf16le').toString('base64')], { timeout: 15_000, windowsHide: true })
+    return JSON.parse(stdout) as { processName: string, title: string }
+  }
+  catch {
+    return undefined
+  }
 }
 
 /** Every process that has a window now. */
@@ -169,9 +196,27 @@ async function run(request: PcActionRequest): Promise<string> {
     }
     case 'press-keys': {
       const combination = parseKeyCombination(request.keys)
+      const name = describeKeyCombination(combination)
       await focusAppBehindAiri()
+      const front = await foregroundWindow()
+      const kind = front ? chatKindOf(front.processName, front.title) : 'other'
+      if (kind !== 'other') {
+        if (name === 'Ctrl+K') {
+          discordSwitcherOpen = true
+        }
+        else if (name === 'Escape') {
+          discordSwitcherOpen = false
+        }
+        else if (name === 'Enter' && discordSwitcherOpen) {
+          // Enter in the quick switcher opens a chat. It sends nothing.
+          discordSwitcherOpen = false
+        }
+        else if (name === 'Enter' && kind === 'group' && !request.groupSendApproved) {
+          throw new Error(`Not sent: the open Discord chat is a group or server channel ("${front!.title}"), not a direct message. Send there only when the owner said to send it to this group. To reach one person, open the quick switcher with ctrl+k and type "@" before the name.`)
+        }
+      }
       uIOhook.keyTap(UiohookKey[combination.key as keyof typeof UiohookKey], combination.modifiers.map(modifier => UiohookKey[modifier as keyof typeof UiohookKey]))
-      return `Pressed ${describeKeyCombination(combination)} in the app in front.`
+      return `Pressed ${name} in the app in front${kind === 'direct' ? ` (Discord direct message ${front!.title.replace(/ - Discord$/, '')})` : ''}.`
     }
     case 'type-text': {
       const text = request.text.slice(0, MAX_TYPED_CHARACTERS)
