@@ -6,6 +6,7 @@ import type { AiriExtension } from '../../types/airiCard'
 import type { VoiceCatalogConfiguration, VoiceCatalogIdentity, VoiceInfo } from '../providers/provider'
 
 import { errorMessageFrom } from '@moeru/std'
+import { withoutVoiceMoods } from '@proj-airi/core-agent'
 import { useLocalStorageManualReset } from '@proj-airi/stage-shared/composables'
 import { refManualReset } from '@vueuse/core'
 import { generateSpeech } from '@xsai/generate-speech'
@@ -33,6 +34,9 @@ export function toSignedPercent(value: number): string {
 
 /** A field that a speech selection needs before it can speak. */
 export type MissingSpeechField = 'model' | 'voice'
+
+/** FAIRY: the local voice server (App (Local)) turns mood markers into sounds such as laughs. */
+const LOCAL_MOOD_SPEECH_PROVIDER_ID = 'app-local-audio-speech'
 
 /**
  * Resolves the model and the voice that a speech selection speaks with.
@@ -719,7 +723,7 @@ export const useSpeechStore = defineStore('speech', () => {
         ttsVoiceType: voiceType,
         bufferEntireSession: resource.startsWith('seed-tts-2.0') || resource.startsWith('seed-icl-2.0'),
         extraBody: { api_resource_id: resource, audio: { sample_rate: 24000, bit_rate: 64000 } },
-      }, text, AbortSignal.any([signal, synthesisSignal])) }
+      }, text.pipeThrough(new TransformStream<string, string>({ transform: (chunk, controller) => controller.enqueue(withoutVoiceMoods(chunk)) })), AbortSignal.any([signal, synthesisSignal])) }
     }
     if (!model || !voiceId)
       throw new Error('Speech requires a model and voice')
@@ -729,7 +733,9 @@ export const useSpeechStore = defineStore('speech', () => {
       signal.throwIfAborted()
       const client = await provider
       signal.throwIfAborted()
-      const input = voice && useSSML && canUseSSML ? generateSSML(request.text, voice, { ...config, pitch: pitchValue }) : request.text
+      // FAIRY: only the local voice server makes mood sounds such as laughs. Other voices drop the markers.
+      const spoken = providerId === LOCAL_MOOD_SPEECH_PROVIDER_ID ? request.text : withoutVoiceMoods(request.text)
+      const input = voice && useSSML && canUseSSML ? generateSSML(spoken, voice, { ...config, pitch: pitchValue }) : spoken
       const settings = providerId === OFFICIAL_SPEECH_PROVIDER_ID
         ? { ...config, extraBody: { ...(config.extraBody as Record<string, unknown> | undefined), airi_analytics: { trigger: 'auto', source: 'chat_auto_tts', voice_type: voiceType, turn_id: turn.turnId } } }
         : config
@@ -758,7 +764,8 @@ export const useSpeechStore = defineStore('speech', () => {
       return null
     const client = await providersStore.getProviderInstance<SpeechProviderWithExtraOptions<string, Record<string, unknown>>>(providerId)
     signal.throwIfAborted()
-    const audio = await generateSpeech({ ...client.speech(model, config), input: text, voice: voiceId, abortSignal: signal })
+    const input = providerId === LOCAL_MOOD_SPEECH_PROVIDER_ID ? text : withoutVoiceMoods(text)
+    const audio = await generateSpeech({ ...client.speech(model, config), input, voice: voiceId, abortSignal: signal })
     return new Blob([audio])
   }
 

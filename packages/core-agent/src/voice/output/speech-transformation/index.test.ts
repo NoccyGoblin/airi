@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toSpeechText, withoutEmoji } from '.'
+import { renderVoiceMoods, toSpeechText, voiceMoodMarker, withoutEmoji, withoutVoiceMoods, withVoiceMoods } from '.'
 
 describe('withoutEmoji (FAIRY)', () => {
   it('drops emoji so the voice does not read them, and keeps the words', () => {
@@ -19,6 +19,22 @@ describe('withoutEmoji (FAIRY)', () => {
 
   it('keeps the speech marker that the stream splits on', () => {
     expect(toSpeechText('Hi 😊 there', { marker: '' })).toBe('Hi there')
+  })
+})
+
+describe('voice moods (FAIRY)', () => {
+  it('turns emoji with a sound into mood markers and drops the others', () => {
+    const text = toSpeechText('No way 😂 really? 🎉 Ugh 😮‍💨 fine.')
+    expect(renderVoiceMoods(text, mood => `<${mood}>`)).toBe('No way <laugh> really? Ugh <sigh> fine.')
+  })
+
+  it('drops the markers for a voice that cannot make the sounds', () => {
+    expect(withoutVoiceMoods(toSpeechText('😴 So tired. Hehe 🤭'))).toBe('So tired. Hehe')
+  })
+
+  it('keeps a marker as one character', () => {
+    expect(voiceMoodMarker('laugh')).toHaveLength(1)
+    expect(withVoiceMoods('Hi 😂')).toBe(`Hi ${voiceMoodMarker('laugh')}`)
   })
 })
 

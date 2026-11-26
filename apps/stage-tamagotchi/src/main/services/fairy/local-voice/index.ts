@@ -4,17 +4,20 @@ import { join } from 'node:path'
 
 import { useLogg } from '@guiiai/logg'
 import { errorMessageFrom } from '@moeru/std'
+import { withoutVoiceMoods } from '@proj-airi/core-agent'
 import { Mutex } from 'async-mutex'
 import { eventHandler, H3 } from 'h3'
 
 import { createH3Server } from '../../airi/http-server/server'
 import { FAIRY_DATA_DIR } from '../memory-files'
+import { ORPHEUS_SAMPLE_RATE, ORPHEUS_VOICES, speakWithOrpheus, toWav, warmUpOrpheus } from './orpheus'
 import { readWavMono } from './wav'
 
 /**
  * FAIRY: a local voice server for the character, in the main process.
  *
- * It speaks with Kokoro and listens with Whisper. Both run on the CPU through onnxruntime-node, so they use every core.
+ * It speaks with Orpheus (./orpheus.ts) or Kokoro and listens with Whisper. Kokoro and Whisper run on the CPU through
+ * onnxruntime-node, so they use every core.
  * In the renderer, Kokoro runs as single-threaded WASM, about 20 times slower, and WebGPU on some AMD cards gives
  * broken audio. The models download once into `fairy-data/models` and then run offline.
  *
@@ -110,13 +113,16 @@ export function startLocalVoiceServer() {
 
     app.get('/v1/models', eventHandler(() => json({
       object: 'list',
-      data: ['kokoro', ...Object.keys(WHISPER_MODELS)].map(id => ({ id, object: 'model', owned_by: 'local' })),
+      data: ['orpheus', 'kokoro', ...Object.keys(WHISPER_MODELS)].map(id => ({ id, object: 'model', owned_by: 'local' })),
     })))
 
     app.get('/v1/audio/voices', eventHandler(async () => {
       try {
         const tts = await loadKokoro()
-        return json({ voices: Object.entries(tts.voices).map(([id, voice]) => ({ id, name: voice.name, language: voice.language, gender: voice.gender })) })
+        return json({ voices: [
+          ...ORPHEUS_VOICES.map(id => ({ id, name: `${id} (Orpheus)`, language: 'en-US', model: 'orpheus' })),
+          ...Object.entries(tts.voices).map(([id, voice]) => ({ id, name: voice.name, language: voice.language, gender: voice.gender, model: 'kokoro' })),
+        ] })
       }
       catch (error) {
         return failure(error)
@@ -125,14 +131,22 @@ export function startLocalVoiceServer() {
 
     app.post('/v1/audio/speech', eventHandler(async (event) => {
       try {
-        const body = await event.req.json() as { input?: unknown, voice?: unknown, speed?: unknown }
+        const body = await event.req.json() as { model?: unknown, input?: unknown, voice?: unknown, speed?: unknown }
         const input = typeof body.input === 'string' ? body.input.slice(0, 4000) : ''
         if (!input.trim())
           return json({ error: { message: 'Empty input' } }, 400)
+        // The model picks the engine, so a voice never changes to another engine.
+        if (body.model === 'orpheus') {
+          const voice = typeof body.voice === 'string' && (ORPHEUS_VOICES as readonly string[]).includes(body.voice) ? body.voice : ORPHEUS_VOICES[0]
+          const started = Date.now()
+          const samples = await speaking.runExclusive(() => speakWithOrpheus(input, voice))
+          log.log(`Orpheus spoke ${(samples.length / ORPHEUS_SAMPLE_RATE).toFixed(1)} s in ${Date.now() - started} ms`)
+          return new Response(toWav(samples, ORPHEUS_SAMPLE_RATE), { headers: { 'Content-Type': 'audio/wav', ...CORS } })
+        }
         const tts = await loadKokoro()
         const voice = typeof body.voice === 'string' && body.voice in tts.voices ? body.voice : 'af_heart'
         const speed = typeof body.speed === 'number' && body.speed > 0.25 && body.speed < 4 ? body.speed : 1
-        const audio = await speaking.runExclusive(() => tts.generate(input, { voice: voice as keyof KokoroTTS['voices'], speed }))
+        const audio = await speaking.runExclusive(() => tts.generate(withoutVoiceMoods(input), { voice: voice as keyof KokoroTTS['voices'], speed }))
         return new Response(audio.toWav(), { headers: { 'Content-Type': 'audio/wav', ...CORS } })
       }
       catch (error) {
@@ -168,7 +182,7 @@ export function startLocalVoiceServer() {
     log.log(`local voice listening on ${address.baseUrl}`)
 
     // Warm up, so the first reply does not wait for the models.
-    void loadKokoro().then(tts => tts.generate('Hi.', { voice: 'af_heart' })).catch(error => log.warn(`Kokoro warm-up failed: ${errorMessageFrom(error)}`))
+    void warmUpOrpheus().then(() => log.log('Orpheus ready')).catch(error => log.warn(`Orpheus warm-up failed: ${errorMessageFrom(error)}`))
     void loadWhisper(DEFAULT_WHISPER).then(asr => asr(new Float32Array(16_000))).catch(error => log.warn(`Whisper warm-up failed: ${errorMessageFrom(error)}`))
   })().catch((error) => {
     started = undefined

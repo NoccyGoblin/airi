@@ -88,7 +88,7 @@ export function toSpeechText(markdown: string, options?: SpeechTextOptions): str
   // The 4.0.0 and 4.0.1 tarballs have no `dist`, but their `exports` point into it, so the import fails.
   // Source: npm tarballs of @flowershow/remark-wiki-link 4.0.0 and 4.0.1, checked 2026-11-02.
   // Remove the pin when a 4.x release ships `dist`.
-  return withoutEmoji(String(unified().use(remarkParse).use(remarkCjkFriendly).use(remarkMath).use(remarkWikiLink).use(remarkSpeech, { ...options, preprocessors }).processSync(prepared)))
+  return withoutEmoji(withVoiceMoods(String(unified().use(remarkParse).use(remarkCjkFriendly).use(remarkMath).use(remarkWikiLink).use(remarkSpeech, { ...options, preprocessors }).processSync(prepared))))
 }
 
 /**
@@ -96,6 +96,71 @@ export function toSpeechText(markdown: string, options?: SpeechTextOptions): str
  * Digits and `#` are emoji code points too, but not pictographic, so numbers stay.
  */
 const emoji = /[ \t]*(?:\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier}|‍\p{Extended_Pictographic})*️?|\p{Regional_Indicator}{2})/gu
+
+/**
+ * FAIRY: sounds that an expressive voice can make. A voice that cannot make them drops them with {@link withoutVoiceMoods}.
+ */
+export const VOICE_MOODS = ['laugh', 'chuckle', 'giggle', 'sigh', 'gasp', 'yawn', 'groan', 'sniffle'] as const
+export type VoiceMood = typeof VOICE_MOODS[number]
+
+/** Each mood travels through speech text as one private use character, so markdown and sentence splitting keep it. */
+const VOICE_MOOD_BASE = 0xE110
+
+const moodByEmoji: Record<string, VoiceMood> = {
+  '😂': 'laugh',
+  '🤣': 'laugh',
+  '😹': 'laugh',
+  '😆': 'chuckle',
+  '😄': 'chuckle',
+  '😁': 'chuckle',
+  '🤭': 'giggle',
+  '😜': 'giggle',
+  '😝': 'giggle',
+  '😮‍💨': 'sigh',
+  '😔': 'sigh',
+  '😩': 'sigh',
+  '😮': 'gasp',
+  '😲': 'gasp',
+  '😱': 'gasp',
+  '🥱': 'yawn',
+  '😴': 'yawn',
+  '😒': 'groan',
+  '😤': 'groan',
+  '😢': 'sniffle',
+  '😭': 'sniffle',
+}
+
+/** The private use character that carries `mood` through speech text. */
+export function voiceMoodMarker(mood: VoiceMood): string {
+  return String.fromCharCode(VOICE_MOOD_BASE + VOICE_MOODS.indexOf(mood))
+}
+
+const voiceMoodMarkers = new RegExp(`[${String.fromCharCode(VOICE_MOOD_BASE)}-${String.fromCharCode(VOICE_MOOD_BASE + VOICE_MOODS.length - 1)}]`, 'g')
+
+/**
+ * FAIRY: turns an emoji with a sound, such as 😂 or 😮‍💨, into its mood marker. The mood belongs where the emoji was.
+ *
+ * @example
+ * withVoiceMoods('No way 😂 really?') // 'No way  really?'
+ */
+export function withVoiceMoods(text: string): string {
+  return text.replace(emoji, (match) => {
+    const mood = moodByEmoji[match.trim().replace(/️/g, '')]
+    return mood ? ` ${voiceMoodMarker(mood)}` : match
+  })
+}
+
+/** Replaces each mood marker with what `render` returns, for example `<laugh>`. */
+export function renderVoiceMoods(text: string, render: (mood: VoiceMood) => string): string {
+  return text.replace(voiceMoodMarkers, marker => render(VOICE_MOODS[marker.charCodeAt(0) - VOICE_MOOD_BASE]))
+}
+
+const spacedVoiceMoodMarkers = new RegExp(`[ \\t]*${voiceMoodMarkers.source}`, 'g')
+
+/** Drops the mood markers, for a voice that cannot make the sounds. */
+export function withoutVoiceMoods(text: string): string {
+  return text.replace(spacedVoiceMoodMarkers, '').replace(/^[ \t]+/gm, '')
+}
 
 /**
  * FAIRY: the chat shows emoji, but a voice would read them out ("smiling face with hearts"), so speech drops them,
