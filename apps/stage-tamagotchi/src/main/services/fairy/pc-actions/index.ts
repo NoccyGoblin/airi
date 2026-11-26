@@ -19,6 +19,7 @@ import { app, BrowserWindow, clipboard, net, screen, shell } from 'electron'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
 
 import { electronPcAction, electronPcCapture } from '../../../../shared/eventa'
+import { isClickThroughWindow } from '../activity-bubble'
 import { captureWithoutAiri } from '../look-at-screen'
 import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { chatKindOf } from './chats'
@@ -259,7 +260,8 @@ async function readTarget(target: { processId: number, app: string }) {
 /** Refuses a click on a spot that one of AIRI's own windows covers. */
 function assertNotOnAiri(point: { x: number, y: number }) {
   const dip = screen.screenToDipPoint(point)
-  const ownWindow = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.isVisible() && contains(window.getBounds(), dip))
+  // A click-through window, such as the activity bubble, lets the click pass.
+  const ownWindow = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.isVisible() && !isClickThroughWindow(window) && contains(window.getBounds(), dip))
   if (ownWindow)
     throw new Error('AIRI\'s own window covers that spot, so nothing was clicked. Ask the owner to move the character or the chat.')
 }

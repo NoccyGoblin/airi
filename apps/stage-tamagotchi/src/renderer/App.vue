@@ -333,7 +333,7 @@ function createFullStageRuntime() {
   // FAIRY: only the main window shows the character, so only it takes files dropped on her.
   setupFileDropBridge()
   // FAIRY: only the main window runs turns, so only it narrows their tools to the opened groups.
-  setupToolboxBridge()
+  setupToolboxBridge(context.value)
 
   return {
     async initialize() {

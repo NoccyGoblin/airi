@@ -41,6 +41,7 @@ import { createMcpServersService } from '../../../services/airi/mcp-servers'
 import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
+import { createActivityBubbleService } from '../../../services/fairy/activity-bubble'
 import { createDiscordBotService } from '../../../services/fairy/discord'
 import { createFileDropService } from '../../../services/fairy/file-drop'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
@@ -107,6 +108,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createWanderService({ context, window: params.window }))
   // FAIRY: reads files that the owner drops on the character.
   createFileDropService({ context })
+  // FAIRY: a bubble next to the character that says what she does.
+  onWindowClosed(params.window, createActivityBubbleService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

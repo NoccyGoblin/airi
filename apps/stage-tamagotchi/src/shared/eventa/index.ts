@@ -355,6 +355,9 @@ export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:f
  */
 export const electronReadDroppedFile = defineInvokeEventa<{ data: string, size: number }, { path: string }>('eventa:invoke:electron:fairy:read-dropped-file')
 
+/** FAIRY: the few words in the bubble next to the character about what she does now. An empty text hides it. */
+export const electronActivityStatus = defineInvokeEventa<void, { text: string | null }>('eventa:invoke:electron:fairy:activity-status')
+
 /** FAIRY: turns wander mode on or off, or reads it when `enabled` is missing. */
 export const electronWanderMode = defineInvokeEventa<{ enabled: boolean }, { enabled?: boolean } | undefined>('eventa:invoke:electron:fairy:wander-mode')
 
