@@ -18,6 +18,7 @@ import { bubbleSay } from '../activity-bubble'
 import { bubblePlace } from '../activity-bubble/place'
 import { loadReactions, pickLine } from '../desktop-life/reactions'
 import { FAIRY_DATA_DIR } from '../memory-files'
+import { registerMode } from '../modes'
 import { PowerShellHost } from '../pc-actions/powershell-host'
 import { drawDoodle } from '../screen-draw'
 import { addStickyNote } from '../sticky-notes'
@@ -223,15 +224,21 @@ export function createMischiefService(params: { context: ReturnType<typeof creat
     await writeFile(SETTINGS_FILE, `${JSON.stringify({ enabled, character: name }, null, 2)}\n`)
   }
 
+  async function setEnabled(on: boolean) {
+    if (on === enabled)
+      return
+    enabled = on
+    nextAt = nextPrankAt(Date.now())
+    await save().catch(error => log.warn(`could not save mischief mode: ${errorMessageFrom(error)}`))
+    log.log(`mischief mode ${enabled ? 'on' : 'off'}`)
+  }
+  const unregister = registerMode('mischief', { get: () => enabled, set: setEnabled })
+
   defineInvokeHandler(params.context, electronMischief, async (request) => {
     if (request.character)
       name = request.character
-    if (request.enabled !== undefined && request.enabled !== enabled) {
-      enabled = request.enabled
-      nextAt = nextPrankAt(Date.now())
-      await save().catch(error => log.warn(`could not save mischief mode: ${errorMessageFrom(error)}`))
-      log.log(`mischief mode ${enabled ? 'on' : 'off'}`)
-    }
+    if (request.enabled !== undefined)
+      await setEnabled(request.enabled)
     const played = request.prankNow ? await prank(true) : undefined
     return { enabled, played }
   })
@@ -246,6 +253,7 @@ export function createMischiefService(params: { context: ReturnType<typeof creat
   })().catch(error => log.warn(`could not read mischief mode: ${errorMessageFrom(error)}`))
 
   return () => {
+    unregister()
     clearInterval(timer)
     shell.stop()
     setWanderPaused('mischief', false)

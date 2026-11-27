@@ -15,6 +15,7 @@ import { boolean, object, optional, parse } from 'valibot'
 
 import { electronWanderMode } from '../../../../shared/eventa'
 import { FAIRY_DATA_DIR } from '../memory-files'
+import { registerMode } from '../modes'
 import { flightDuration, flightPoint, nextSpot } from './path'
 
 /**
@@ -156,16 +157,25 @@ export function createWanderService(params: { context: ReturnType<typeof createC
     timer = setInterval(tick, FRAME_MS)
   }
 
+  async function setEnabled(on: boolean) {
+    if (on === enabled)
+      return
+    apply(on)
+    await saveEnabled(on).catch(error => log.warn(`could not save wander mode: ${errorMessageFrom(error)}`))
+    log.log(`wander mode ${on ? 'on' : 'off'}`)
+  }
+
   defineInvokeHandler(params.context, electronWanderMode, async (request) => {
-    if (request?.enabled !== undefined && request.enabled !== enabled) {
-      apply(request.enabled)
-      await saveEnabled(request.enabled).catch(error => log.warn(`could not save wander mode: ${errorMessageFrom(error)}`))
-      log.log(`wander mode ${request.enabled ? 'on' : 'off'}`)
-    }
+    if (request?.enabled !== undefined)
+      await setEnabled(request.enabled)
     return { enabled }
   })
+  const unregister = registerMode('wander', { get: () => enabled, set: setEnabled })
 
   void loadEnabled().then(apply).catch(error => log.warn(`could not read wander mode: ${errorMessageFrom(error)}`))
 
-  return () => apply(false)
+  return () => {
+    unregister()
+    apply(false)
+  }
 }

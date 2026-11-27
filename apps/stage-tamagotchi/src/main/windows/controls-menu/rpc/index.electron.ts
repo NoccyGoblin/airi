@@ -14,9 +14,11 @@ import {
   electronControlsMenuClosed,
   electronControlsMenuNotificationsRead,
   electronControlsMenuPageMounted,
+  electronFairyModes,
   electronOpenSettings,
   noticeWindowEventa,
 } from '../../../../shared/eventa'
+import { readModes, setMode } from '../../../services/fairy/modes'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
 
 /** Serves the requests of the menu page: its own lifecycle, and the items of the menu that the window does itself. */
@@ -50,4 +52,10 @@ export async function setupControlsMenuWindowInvokes(params: {
   defineInvokeHandler(context, electronControlsMenuNotificationsRead, () => params.onNotificationsRead())
   defineInvokeHandler(context, electronOpenSettings, payload => params.settingsWindow.openWindow(payload?.route))
   defineInvokeHandler(context, noticeWindowEventa.openWindow, payload => params.noticeWindow.open(payload))
+  // FAIRY: the character's modes in the quick menu.
+  defineInvokeHandler(context, electronFairyModes, async (request) => {
+    if (request)
+      await setMode(request.mode, request.on)
+    return readModes()
+  })
 }

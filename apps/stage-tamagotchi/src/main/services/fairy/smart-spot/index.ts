@@ -21,6 +21,7 @@ import { electronSmartSpot } from '../../../../shared/eventa'
 import { bubbleSay } from '../activity-bubble'
 import { windowsKeptOutOfCaptures } from '../look-at-screen'
 import { FAIRY_DATA_DIR } from '../memory-files'
+import { registerMode } from '../modes'
 import { PowerShellHost } from '../pc-actions/powershell-host'
 import { isWanderPausedBesides, setWanderPaused } from '../wander'
 import { bestSpot, menuGrid, spotCost } from './layout'
@@ -265,6 +266,16 @@ export function createSmartSpotService(params: { context: ReturnType<typeof crea
       })
   }
 
+  const unregister = registerMode('smartSpot', {
+    get: () => settings.enabled,
+    set: async (on) => {
+      if (on === settings.enabled)
+        return
+      settings.enabled = on
+      await save().catch(error => log.warn(`could not save smart spot: ${errorMessageFrom(error)}`))
+    },
+  })
+
   defineInvokeHandler(params.context, electronSmartSpot, async (request) => {
     let changed = false
     if (request?.enabled !== undefined && request.enabled !== settings.enabled) {
@@ -290,6 +301,7 @@ export function createSmartSpotService(params: { context: ReturnType<typeof crea
     .finally(loop)
 
   return () => {
+    unregister()
     stopped = true
     clearTimeout(timer)
     shell.stop()

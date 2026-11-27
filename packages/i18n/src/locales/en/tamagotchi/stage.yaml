@@ -55,6 +55,13 @@ docs:
   'character': Character
   'manage-characters': Manage characters…
   'character-voice': Character voice
+  'modes': '{name}''s modes'
+  'mode-wander': Wander around
+  'mode-mischief': Mischief
+  'mode-game-buddy': Game buddy
+  'mode-game-comments': Talk during games
+  'mode-smart-spot': Move off game menus
+  'mode-sprite': Sprite avatar
   'microphone-settings': Microphone settings…
   'keep-on-top': Keep on top
   'settings': Settings…

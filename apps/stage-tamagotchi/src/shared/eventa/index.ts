@@ -394,6 +394,10 @@ export const electronGameBuddy = defineInvokeEventa<{ enabled: boolean, comments
 export const electronGameBuddyNotice = defineEventa<{ text: string }>('eventa:event:electron:fairy:game-buddy:notice')
 /** FAIRY: turns smart spot on or off, or forgets the spots the owner picked. `apps` names the apps with a picked spot. */
 export const electronSmartSpot = defineInvokeEventa<{ enabled: boolean, apps: string[] }, { enabled?: boolean, forget?: boolean } | undefined>('eventa:invoke:electron:fairy:smart-spot')
+/** FAIRY: the modes that the quick menu switches. */
+export type FairyMode = 'wander' | 'mischief' | 'gameBuddy' | 'gameComments' | 'smartSpot'
+/** FAIRY: reads the modes, and switches one first when the request names it. */
+export const electronFairyModes = defineInvokeEventa<Partial<Record<FairyMode, boolean>>, { mode: FairyMode, on: boolean } | undefined>('eventa:invoke:electron:fairy:modes')
 export const electronMischief = defineInvokeEventa<{ enabled: boolean, played?: string }, { enabled?: boolean, prankNow?: boolean, character: string }>('eventa:invoke:electron:fairy:mischief')
 
 /** FAIRY: puts a sticky note on the owner's screen. `by` signs it with the character's name. */

@@ -16,6 +16,7 @@ import { bubbleSay } from '../activity-bubble'
 import { loadReactions, pickLine } from '../desktop-life/reactions'
 import { getLocalJson } from '../league'
 import { FAIRY_DATA_DIR } from '../memory-files'
+import { registerMode } from '../modes'
 import { MatchReader } from './events'
 
 /**
@@ -113,15 +114,23 @@ export function createGameBuddyService(params: { context: ReturnType<typeof crea
     await writeFile(SETTINGS_FILE, `${JSON.stringify(settings, null, 2)}\n`)
   }
 
+  async function change(request: { enabled?: boolean, comments?: boolean }) {
+    const next = { enabled: request.enabled ?? settings.enabled, comments: request.comments ?? settings.comments }
+    if (next.enabled === settings.enabled && next.comments === settings.comments)
+      return
+    settings = next
+    await save().catch(error => log.warn(`could not save game buddy mode: ${errorMessageFrom(error)}`))
+    log.log(`game buddy mode ${settings.enabled ? 'on' : 'off'}, comments ${settings.comments ? 'on' : 'off'}`)
+  }
+
   defineInvokeHandler(params.context, electronGameBuddy, async (request) => {
-    const next = { enabled: request?.enabled ?? settings.enabled, comments: request?.comments ?? settings.comments }
-    if (next.enabled !== settings.enabled || next.comments !== settings.comments) {
-      settings = next
-      await save().catch(error => log.warn(`could not save game buddy mode: ${errorMessageFrom(error)}`))
-      log.log(`game buddy mode ${settings.enabled ? 'on' : 'off'}, comments ${settings.comments ? 'on' : 'off'}`)
-    }
+    await change(request ?? {})
     return { ...settings, inMatch: !!reader }
   })
+  const unregisterModes = [
+    registerMode('gameBuddy', { get: () => settings.enabled, set: enabled => change({ enabled }) }),
+    registerMode('gameComments', { get: () => settings.comments, set: comments => change({ comments }) }),
+  ]
 
   void (async () => {
     if (existsSync(SETTINGS_FILE))
@@ -131,6 +140,7 @@ export function createGameBuddyService(params: { context: ReturnType<typeof crea
     .finally(loop)
 
   return () => {
+    unregisterModes.forEach(unregister => unregister())
     stopped = true
     clearTimeout(timer)
   }

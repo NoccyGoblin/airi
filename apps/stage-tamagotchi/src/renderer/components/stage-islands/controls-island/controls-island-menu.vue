@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ControlsMenuAction } from '../../../../shared/eventa'
+import type { ControlsMenuAction, FairyMode } from '../../../../shared/eventa'
 
 import { useElectronEventaInvoke } from '@proj-airi/electron-vueuse'
 import { useStopSpeakingButton } from '@proj-airi/stage-layouts/composables/useStopSpeakingButton'
@@ -21,10 +21,12 @@ import { useI18n } from 'vue-i18n'
 
 import {
   electronAppQuit,
+  electronFairyModes,
   electronOpenSettings,
   noticeWindowEventa,
 } from '../../../../shared/eventa'
 import { createPlaybackSpeakingReader } from '../../../composables/playback-speaking-reader'
+import { useAvatarStyle } from '../../../stores/avatar-style'
 import { useControlsIslandStore } from '../../../stores/controls-island'
 
 const props = defineProps<{
@@ -117,6 +119,40 @@ const characterVoice = computed({
   },
 })
 
+// FAIRY: the character's modes. The main process owns them, and each open reads them again, because she can also
+// switch them herself. The sprite avatar is a setting that the main window watches in local storage.
+const fairyModes = useElectronEventaInvoke(electronFairyModes)
+const modes = ref<Partial<Record<FairyMode, boolean>>>({})
+async function readModes(request?: { mode: FairyMode, on: boolean }) {
+  try {
+    modes.value = await fairyModes(request)
+  }
+  catch (error) {
+    console.error('Failed to read the character modes:', error)
+  }
+}
+function modeSwitch(mode: FairyMode) {
+  return computed({
+    get: () => modes.value[mode] ?? false,
+    set: (on: boolean) => {
+      modes.value = { ...modes.value, [mode]: on }
+      void readModes({ mode, on })
+    },
+  })
+}
+const wanderMode = modeSwitch('wander')
+const mischiefMode = modeSwitch('mischief')
+const gameBuddyMode = modeSwitch('gameBuddy')
+const gameCommentsMode = modeSwitch('gameComments')
+const smartSpotMode = modeSwitch('smartSpot')
+const avatarStyle = useAvatarStyle()
+const spriteMode = computed({
+  get: () => avatarStyle.value === 'sprite',
+  set: (on: boolean) => {
+    avatarStyle.value = on ? 'sprite' : 'live2d'
+  },
+})
+
 // Window
 const { alwaysOnTop } = storeToRefs(useSettings())
 const keepOnTop = computed({
@@ -171,10 +207,13 @@ function quit() {
 
 // The menu window mounts the menu with its first request, so the menu can mount already open.
 watch(open, (opened) => {
-  if (opened)
+  if (opened) {
     trackControlsIslandAction({ action: 'open_menu' })
-  else
+    void readModes()
+  }
+  else {
     notificationsOpen.value = false
+  }
 }, { immediate: true })
 
 const subMenuClasses = [
@@ -196,6 +235,8 @@ const notificationsSurfaceAnchor = useTemplateRef<HTMLElement>('notificationsSur
 useBackdropSurface(() => notificationsSurfaceAnchor.value?.closest<HTMLElement>('[role="menu"]'))
 const characterSurfaceAnchor = useTemplateRef<HTMLElement>('characterSurfaceAnchor')
 useBackdropSurface(() => characterSurfaceAnchor.value?.closest<HTMLElement>('[role="menu"]'))
+const modesSurfaceAnchor = useTemplateRef<HTMLElement>('modesSurfaceAnchor')
+useBackdropSurface(() => modesSurfaceAnchor.value?.closest<HTMLElement>('[role="menu"]'))
 </script>
 
 <template>
@@ -293,6 +334,37 @@ useBackdropSurface(() => characterSurfaceAnchor.value?.closest<HTMLElement>('[ro
           <MenuItem @select="openSettingsAt('/settings/airi-card', 'manage_profiles')">
             {{ t('tamagotchi.stage.controls-island.manage-characters') }}
           </MenuItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuPortal>
+    </DropdownMenuSub>
+    <!-- FAIRY: the character's modes, so the owner can switch them without asking her. -->
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger data-testid="controls-island-modes" :class="menuItemClasses">
+        <span :class="['flex-1']">{{ t('tamagotchi.stage.controls-island.modes', { name: activeCardName ?? '' }) }}</span>
+        <span aria-hidden="true" :class="['i-mingcute:right-line size-4 shrink-0 opacity-60']" />
+      </DropdownMenuSubTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuSubContent :side-offset="6" :collision-padding="8" :class="subMenuClasses">
+          <span ref="modesSurfaceAnchor" aria-hidden="true" :class="['hidden']" />
+          <MenuSwitchItem v-model="wanderMode">
+            {{ t('tamagotchi.stage.controls-island.mode-wander') }}
+          </MenuSwitchItem>
+          <MenuSwitchItem v-model="mischiefMode">
+            {{ t('tamagotchi.stage.controls-island.mode-mischief') }}
+          </MenuSwitchItem>
+          <MenuSwitchItem v-model="spriteMode">
+            {{ t('tamagotchi.stage.controls-island.mode-sprite') }}
+          </MenuSwitchItem>
+          <MenuSeparator />
+          <MenuSwitchItem v-model="gameBuddyMode">
+            {{ t('tamagotchi.stage.controls-island.mode-game-buddy') }}
+          </MenuSwitchItem>
+          <MenuSwitchItem v-model="gameCommentsMode" :disabled="!gameBuddyMode">
+            {{ t('tamagotchi.stage.controls-island.mode-game-comments') }}
+          </MenuSwitchItem>
+          <MenuSwitchItem v-model="smartSpotMode">
+            {{ t('tamagotchi.stage.controls-island.mode-smart-spot') }}
+          </MenuSwitchItem>
         </DropdownMenuSubContent>
       </DropdownMenuPortal>
     </DropdownMenuSub>
