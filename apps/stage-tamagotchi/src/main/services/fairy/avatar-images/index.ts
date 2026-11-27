@@ -1,6 +1,7 @@
 import type { FSWatcher } from 'node:fs'
 
 import type { createContext } from '@moeru/eventa/adapters/electron/main'
+import type { BrowserWindow } from 'electron'
 
 import { existsSync, watch } from 'node:fs'
 import { mkdir, readdir, readFile, stat } from 'node:fs/promises'
@@ -9,8 +10,9 @@ import { extname, join } from 'node:path'
 import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
+import { screen } from 'electron'
 
-import { electronAvatarImages, electronAvatarImagesChanged } from '../../../../shared/eventa'
+import { electronAvatarImages, electronAvatarImagesChanged, electronCharacterSize } from '../../../../shared/eventa'
 import { FAIRY_DATA_DIR } from '../memory-files'
 import { PLACEHOLDER_MARK, upgradePlaceholderImages, writePlaceholderImages } from './placeholders'
 
@@ -66,7 +68,19 @@ async function readImages(): Promise<Record<string, string>> {
   return images
 }
 
-export function createAvatarImagesService(params: { context: ReturnType<typeof createContext>['context'] }) {
+export function createAvatarImagesService(params: { context: ReturnType<typeof createContext>['context'], window: BrowserWindow }) {
+  // A full-body sprite needs a taller window than a Live2D bust. Her feet stay where they were, and the window stays
+  // on the screen.
+  defineInvokeHandler(params.context, electronCharacterSize, ({ width, height }) => {
+    const before = params.window.getBounds()
+    const area = screen.getDisplayMatching(before).workArea
+    const size = { width: Math.round(Math.min(area.width, Math.max(120, width))), height: Math.round(Math.min(area.height, Math.max(120, height))) }
+    const x = Math.min(area.x + area.width - size.width, Math.max(area.x, Math.round(before.x + (before.width - size.width) / 2)))
+    const y = Math.min(area.y + area.height - size.height, Math.max(area.y, before.y + before.height - size.height))
+    params.window.setBounds({ x, y, ...size }, false)
+    return { width: before.width, height: before.height }
+  })
+
   let watcher: FSWatcher | undefined
   let changeTimer: ReturnType<typeof setTimeout> | undefined
 

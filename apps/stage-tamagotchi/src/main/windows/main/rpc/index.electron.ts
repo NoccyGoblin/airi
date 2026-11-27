@@ -124,7 +124,7 @@ export async function setupMainWindowElectronInvokes(params: {
   // FAIRY: mischief mode, small pranks when the owner turns it on.
   onWindowClosed(params.window, createMischiefService({ context, window: params.window }))
   // FAIRY: the images of her sprite avatar.
-  onWindowClosed(params.window, createAvatarImagesService({ context }))
+  onWindowClosed(params.window, createAvatarImagesService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

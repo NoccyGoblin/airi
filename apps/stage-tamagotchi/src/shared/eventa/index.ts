@@ -374,6 +374,8 @@ export const electronGameOver = defineEventa<{ game: 'tic-tac-toe' | 'rock-paper
 export const electronAvatarImages = defineInvokeEventa<{ images: Record<string, string>, folder: string }>('eventa:invoke:electron:fairy:avatar-images')
 /** FAIRY: a file in fairy-data/avatar changed, so the window loads the images again. */
 export const electronAvatarImagesChanged = defineEventa<void>('eventa:event:electron:fairy:avatar-images-changed')
+/** FAIRY: sizes the character's window and keeps her feet where they were. Returns the size before the change. */
+export const electronCharacterSize = defineInvokeEventa<{ width: number, height: number }, { width: number, height: number }>('eventa:invoke:electron:fairy:character-size')
 
 /** FAIRY: turns mischief mode on or off, or plays one prank now. `played` names the prank. */
 export const electronMischief = defineInvokeEventa<{ enabled: boolean, played?: string }, { enabled?: boolean, prankNow?: boolean, character: string }>('eventa:invoke:electron:fairy:mischief')

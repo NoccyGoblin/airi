@@ -43,6 +43,7 @@ import WindowResizeBorder from '../components/window-resize-border.vue'
 
 import { defaultFullscreenSurface, electronAppIsWayland, electronFullscreenExit, electronFullscreenSetMode, electronMainPageMounted, electronMainWindowEnterFullscreen, electronMainWindowGetFullscreenState, electronMainWindowSetFullscreenBounds, electronOpenInlay, electronOpenOnboarding, electronOpenSettings } from '../../shared/eventa'
 import { fullscreenHostPages, fullscreenSurfaceOf } from '../components/fullscreen/surfaces'
+import { useAvatarStyleWindow } from '../composables/avatar-style-window'
 import { useModelSettingsRuntimeOwner } from '../composables/model-settings-runtime-owner'
 import { useFullscreenHost } from '../composables/use-fullscreen-host'
 import { provideFullscreenLayout } from '../composables/use-fullscreen-layout'
@@ -64,6 +65,7 @@ const controlsIslandInteractionActive = shallowRef(false)
 const widgetStageRef = ref<InstanceType<typeof WidgetStage>>()
 // FAIRY: the sprite avatar shows over the Live2D stage, which stays mounted because her voice plays through it.
 const avatarStyle = useAvatarStyle()
+useAvatarStyleWindow()
 // The stage canvas alpha tells the sampler which pixels of the window AIRI
 // paints, so it can read the desktop showing through behind the character.
 useScreenAmbientLight({ stageCanvas: () => widgetStageRef.value?.canvasElement() })
