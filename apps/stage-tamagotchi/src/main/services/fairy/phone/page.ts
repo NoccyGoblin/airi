@@ -38,13 +38,13 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   #preview button { width:28px; height:28px; font-size:14px; margin-left:6px; }
   input[type=file] { display:none; }
   header button { width:36px; height:36px; font-size:17px; }
-  #bell { margin-left:auto; }
+  #status { margin-right:auto; }
   button.mic { touch-action:none; user-select:none; -webkit-user-select:none; }
   button.mic.on { background:#d8466d; transform:scale(1.15); }
 </style>
 </head>
 <body>
-<header>🧚 <span id="name">AIRI</span><select id="who" aria-label="Character" style="display:none"></select> <small id="status">connecting…</small><button type="button" id="bell" aria-label="Notifications">🔕</button><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
+<header>🧚 <span id="name">AIRI</span><select id="who" aria-label="Character" style="display:none"></select> <small id="status">connecting…</small><button type="button" id="app" aria-label="Get the phone app">📱</button><button type="button" id="bell" aria-label="Notifications">🔕</button><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
 <div id="log"></div>
 <div id="preview"><img id="previewImg" alt=""><button type="button" id="clearImg" aria-label="Remove photo">✕</button></div>
 <form id="form">
@@ -196,7 +196,9 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   // -- Hold to talk: records 16 kHz mono audio, and the PC turns it into text --
   const mic = $('mic')
   let rec = null
-  async function startRec() {
+  // Hands-free, from the assistant button of the phone app: it stops after a short silence once the owner spoke.
+  const HANDS_FREE = { loud: 0.03, quietMs: 1200, waitMs: 7000, maxMs: 20000 }
+  async function startRec(handsFree) {
     if (rec || mic.disabled) return
     stopTalking()
     const state = { chunks: [], stopped: false }
@@ -207,7 +209,20 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
       const ctx = new AudioContext({ sampleRate: 16000 })
       const source = ctx.createMediaStreamSource(stream)
       const proc = ctx.createScriptProcessor(4096, 1, 1)
-      proc.onaudioprocess = ev => { if (!state.stopped) state.chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0))) }
+      const started = Date.now()
+      let lastLoud = 0
+      proc.onaudioprocess = ev => {
+        if (state.stopped) return
+        const samples = ev.inputBuffer.getChannelData(0)
+        state.chunks.push(new Float32Array(samples))
+        if (!handsFree) return
+        let sum = 0
+        for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i]
+        const now = Date.now()
+        if (Math.sqrt(sum / samples.length) > HANDS_FREE.loud) lastLoud = now
+        if (!lastLoud && now - started > HANDS_FREE.waitMs) { state.chunks = []; note('I did not hear anything.'); stopRec() }
+        else if ((lastLoud && now - lastLoud > HANDS_FREE.quietMs) || now - started > HANDS_FREE.maxMs) stopRec()
+      }
       source.connect(proc); proc.connect(ctx.destination)
       state.close = () => { proc.disconnect(); source.disconnect(); stream.getTracks().forEach(t => t.stop()); ctx.close() }
       state.rate = ctx.sampleRate
@@ -228,6 +243,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
     rec = null
     state.close()
     const total = state.chunks.reduce((n, c) => n + c.length, 0)
+    if (!total) return
     if (total < state.rate * 0.4) { note('Hold the 🎤 button while you talk.'); return }
     // Resample to 16 kHz in case the phone ignored the asked rate.
     const step = state.rate / 16000, length = Math.floor(total / step)
@@ -240,7 +256,9 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
     const bubble = add('user', '🎤 …')
     ask({ audio: btoa(bin) }, data => { bubble.textContent = data.heard ? '🎤 ' + data.heard : '🎤' })
   }
-  mic.addEventListener('pointerdown', e => { e.preventDefault(); mic.setPointerCapture(e.pointerId); startRec() })
+  mic.addEventListener('pointerdown', e => { e.preventDefault(); mic.setPointerCapture(e.pointerId); startRec(false) })
+  // The phone app calls this when the owner presses its assistant button.
+  window.fairyListen = () => { if (key) { note('Listening…'); startRec(true) } }
   mic.addEventListener('pointerup', stopRec)
   mic.addEventListener('pointercancel', stopRec)
   mic.addEventListener('contextmenu', e => e.preventDefault())
@@ -273,6 +291,23 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
     } catch (e) { note('Notifications did not turn on: ' + (e.message || e)) }
   }
   showBell(false)
+
+  // -- The phone app: inside it, the bell has no use (its web view has no push). In Chrome on Android, offer it. --
+  const inApp = navigator.userAgent.includes('FairyCompanionApp')
+  if (inApp) bell.style.display = 'none'
+  const appBtn = $('app')
+  if (inApp || !/Android/.test(navigator.userAgent) || !key) appBtn.style.display = 'none'
+  appBtn.onclick = () => {
+    const box = note('')
+    const download = document.createElement('a')
+    download.href = './fairy-phone.apk?key=' + encodeURIComponent(key)
+    download.textContent = '1. Download the app'
+    const connect = document.createElement('a')
+    connect.href = 'intent://pair?u=' + encodeURIComponent(location.origin) + '&k=' + encodeURIComponent(key) + '#Intent;scheme=fairycompanion;package=dev.fairy.companion;end'
+    connect.textContent = '2. After installing it, connect the app'
+    for (const link of [download, connect]) { link.style.cssText = 'display:block;color:#c9b8ff;margin:6px 0'; box.appendChild(link) }
+  }
+
   if (canPush) {
     navigator.serviceWorker.register('./sw.js').then(() => {
       // The PC can lose a subscription, so a phone that allowed notifications sends it again on each visit.

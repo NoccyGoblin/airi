@@ -165,3 +165,6 @@ apps/*/src/renderer/public/sherpaw/
 
 # FAIRY: personal data (memories) stays on this PC and never goes to GitHub
 /fairy-data/
+
+# FAIRY: local build toolchains (Java JDK, Android SDK). Downloaded, never committed.
+/tools/

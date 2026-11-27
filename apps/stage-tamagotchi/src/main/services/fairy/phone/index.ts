@@ -35,6 +35,7 @@ export const PHONE_PORT = 7461
 const execFileAsync = promisify(execFile)
 const REPLY_TIMEOUT_MS = 120_000
 const MAX_BODY_BYTES = 8 * 1024 * 1024
+const APP_FILE = join(FAIRY_DATA_DIR, 'phone', 'fairy-phone.apk')
 
 const log = useLogg('fairy-phone').useGlobalConfig()
 
@@ -102,6 +103,15 @@ export function startPhoneServer() {
     app.get('/', eventHandler(() => new Response(PHONE_PAGE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })))
     app.get('/manifest.webmanifest', eventHandler(() => new Response(PHONE_MANIFEST, { headers: { 'Content-Type': 'application/manifest+json' } })))
     app.get('/icon.svg', eventHandler(() => new Response(PHONE_ICON_SVG, { headers: { 'Content-Type': 'image/svg+xml' } })))
+    // The phone app, built by apps/fairy-phone/build-app.cmd. A plain download link cannot send a header, so the
+    // pairing key comes in the query here.
+    app.get('/fairy-phone.apk', eventHandler(async (event) => {
+      if (!keyMatches(new URL(event.req.url).searchParams.get('key'), key))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      if (!existsSync(APP_FILE))
+        return json({ ok: false, error: 'The app is not built yet.' }, 404)
+      return new Response(new Uint8Array(await readFile(APP_FILE)), { headers: { 'Content-Type': 'application/vnd.android.package-archive', 'Content-Disposition': 'attachment; filename="fairy-phone.apk"', 'Cache-Control': 'no-store' } })
+    }))
     app.get('/sw.js', eventHandler(() => new Response(PHONE_SERVICE_WORKER, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' } })))
 
     app.get('/api/push-key', eventHandler(async (event) => {
