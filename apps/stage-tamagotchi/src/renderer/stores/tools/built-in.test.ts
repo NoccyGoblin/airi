@@ -61,6 +61,12 @@ vi.mock('./builtin/pc-actions', () => ({
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
   pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'wander_mode', 'play_youtube', 'read_app', 'click_element', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
 }))
+vi.mock('./builtin/watch', () => ({
+  WATCH_FOR_TOOL_NAME: 'watch_for',
+  LIST_WATCHES_TOOL_NAME: 'list_watches',
+  STOP_WATCHING_TOOL_NAME: 'stop_watching',
+  watchTools: vi.fn(async () => ['watch_for', 'list_watches', 'stop_watching'].map(executableTool)),
+}))
 vi.mock('./builtin/toolbox', () => ({
   TOOLBOX_TOOL_NAME: 'open_toolbox',
   toolboxTools: vi.fn(async () => [executableTool('open_toolbox')]),
@@ -145,6 +151,9 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:browser_scroll', defaultActive: false },
       { id: 'tamagotchi:browser_close', defaultActive: false },
       { id: 'tamagotchi:open_toolbox', defaultActive: false },
+      { id: 'tamagotchi:watch_for', defaultActive: false },
+      { id: 'tamagotchi:list_watches', defaultActive: false },
+      { id: 'tamagotchi:stop_watching', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')

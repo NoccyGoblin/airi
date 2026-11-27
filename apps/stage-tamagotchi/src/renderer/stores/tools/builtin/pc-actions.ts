@@ -63,6 +63,20 @@ export async function locateOnScreen(target: string) {
   return { shot: { captureId: shot.captureId, width: shot.width, height: shot.height }, answer }
 }
 
+/** Takes a fresh screenshot and asks the vision model a question about it. */
+export async function askAboutScreen(question: string) {
+  const shot = await getCapture()
+  return await askVision(describingConversation(question, `data:${shot.mimeType};base64,${shot.data}`))
+}
+
+/** Reads the text on the screen under the mouse with the free OCR of Windows. */
+export async function readScreenText() {
+  const result = await getInvokers().act({ kind: 'screen-text' })
+  if (!result.ok)
+    throw new Error(result.message)
+  return result.message
+}
+
 /** Sends one screenshot request to the chat model of the character, which reads images. */
 async function askVision(conversation: Conversation) {
   const consciousness = useConsciousnessStore()

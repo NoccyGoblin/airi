@@ -6,8 +6,12 @@ import type { KeyCombination } from './keys'
 import type { PhysicalRect } from './mouse'
 import type { UiElement } from './ui-tree'
 
+import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { promisify } from 'node:util'
 
@@ -25,6 +29,7 @@ import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { chatKindOf } from './chats'
 import { describeKeyCombination, parseKeyCombination } from './keys'
 import { clickScript, screenPointOf, scrollScript, windowAtScript } from './mouse'
+import { ocrScript } from './ocr'
 import { PowerShellHost } from './powershell-host'
 import { centerOf, describeUiTree, parseUiTree, uiTreeScript } from './ui-tree'
 import { parseYouTubeResults, youTubeSearchUrl, youTubeWatchUrl } from './youtube'
@@ -433,6 +438,13 @@ async function run(request: PcActionRequest, stopsAtStart: number): Promise<stri
       await powerShell.run(clickScript(point, request.button, request.double))
       await sleep(KEY_SETTLE_MS)
       return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} at (${request.x}, ${request.y}) of the screenshot.`
+    }
+    case 'screen-text': {
+      // The screen under the mouse, without AIRI's own windows, read by the OCR of Windows.
+      const shot = await captureWithoutAiri(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()))
+      const path = join(tmpdir(), 'fairy-screen-text.jpg')
+      await writeFile(path, Buffer.from(shot.data, 'base64'))
+      return (await powerShell.run(ocrScript(path))).trim()
     }
     case 'play-youtube':
       return await playYouTube(request.query, request.pick)

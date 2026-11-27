@@ -14,6 +14,7 @@ import { CLICK_ELEMENT_TOOL_NAME, CLICK_ON_TOOL_NAME, CLOSE_APP_TOOL_NAME, DESCR
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
 import { CREATE_ROUTINE_TOOL_NAME, DELETE_ROUTINE_TOOL_NAME, LIST_ROUTINES_TOOL_NAME, PAUSE_ROUTINE_TOOL_NAME, routineTools } from './builtin/routines'
 import { TOOLBOX_TOOL_NAME, toolboxTools } from './builtin/toolbox'
+import { LIST_WATCHES_TOOL_NAME, STOP_WATCHING_TOOL_NAME, WATCH_FOR_TOOL_NAME, watchTools } from './builtin/watch'
 import { weatherTools } from './builtin/weather'
 import { WEB_SEARCH_TOOL_NAME, webKnowledgeTools, WIKIPEDIA_TOOL_NAME } from './builtin/web-knowledge'
 import { widgetsTools } from './builtin/widgets'
@@ -21,6 +22,10 @@ import { widgetsTools } from './builtin/widgets'
 export const widgetToolReferences = [
   // FAIRY: the toolbox. Only the groups that she opens reach the model. See `builtin/toolbox.ts`.
   { name: TOOLBOX_TOOL_NAME },
+  // FAIRY: "tell me when…" watches of the screen.
+  { name: WATCH_FOR_TOOL_NAME },
+  { name: LIST_WATCHES_TOOL_NAME },
+  { name: STOP_WATCHING_TOOL_NAME },
   { name: 'stage_widgets' },
   { name: 'get_weather' },
   // FAIRY: League facts from Riot's data, offered with every chat and voice message.
@@ -98,6 +103,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       fileTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
       browserTools().then(tools => ({ tools, icon: TOOL_ICONS.search })),
       toolboxTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
+      watchTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

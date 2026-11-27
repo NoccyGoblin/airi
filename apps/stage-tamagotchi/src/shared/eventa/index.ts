@@ -291,6 +291,7 @@ export type PcActionRequest
     | { kind: 'click', captureId: string, x: number, y: number, button: 'left' | 'right', double: boolean }
     | { kind: 'scroll', direction: 'up' | 'down', notches: number }
     | { kind: 'read-window', app?: string }
+    | { kind: 'screen-text' }
     | { kind: 'play-youtube', query: string, pick?: number }
     | { kind: 'click-element', ids: number[], button: 'left' | 'right', double: boolean }
 export interface PcActionResult {
