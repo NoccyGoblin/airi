@@ -10,6 +10,7 @@ import { BROWSER_BACK_TOOL_NAME, BROWSER_CLICK_TOOL_NAME, BROWSER_CLOSE_TOOL_NAM
 import { fileTools, FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './builtin/files'
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
+import { miniGameTools, PLAY_GAME_TOOL_NAME } from './builtin/mini-games'
 import { CIRCLE_ON_SCREEN_TOOL_NAME, CLICK_ELEMENT_TOOL_NAME, CLICK_ON_TOOL_NAME, CLOSE_APP_TOOL_NAME, DESCRIBE_SCREEN_TOOL_NAME, DISCORD_MESSAGE_TOOL_NAME, DOODLE_TOOL_NAME, MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, pcActionTools, PLAY_YOUTUBE_TOOL_NAME, PRESS_KEYS_TOOL_NAME, READ_APP_TOOL_NAME, SCROLL_TOOL_NAME, TYPE_TEXT_TOOL_NAME, WANDER_MODE_TOOL_NAME } from './builtin/pc-actions'
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
 import { CREATE_ROUTINE_TOOL_NAME, DELETE_ROUTINE_TOOL_NAME, LIST_ROUTINES_TOOL_NAME, PAUSE_ROUTINE_TOOL_NAME, routineTools } from './builtin/routines'
@@ -29,6 +30,8 @@ export const widgetToolReferences = [
   { name: STOP_WATCHING_TOOL_NAME },
   // FAIRY: sticky notes on the screen.
   { name: STICKY_NOTE_TOOL_NAME },
+  // FAIRY: mini games with her.
+  { name: PLAY_GAME_TOOL_NAME },
   { name: 'stage_widgets' },
   { name: 'get_weather' },
   // FAIRY: League facts from Riot's data, offered with every chat and voice message.
@@ -110,6 +113,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       toolboxTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
       watchTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
       stickyNoteTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
+      miniGameTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

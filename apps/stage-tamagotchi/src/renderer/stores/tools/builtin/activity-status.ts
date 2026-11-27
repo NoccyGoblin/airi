@@ -63,6 +63,7 @@ const LINES: Record<string, (input: Input) => string> = {
   list_watches: () => 'Checking what I watch…',
   stop_watching: () => 'Stopping a watch…',
   sticky_note: () => 'Writing you a note…',
+  play_game: input => input.game === 'tic-tac-toe' ? 'Setting up tic-tac-toe…' : 'Ready for rock, paper, scissors…',
   web_search: input => withDetail('Searching', input.query),
   wikipedia: input => withDetail('Reading up on', input.query ?? input.title),
   get_weather: () => 'Checking the weather…',

@@ -74,6 +74,7 @@ import { setupFileDropBridge } from './bridges/file-drop'
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
 import { setupLiveModeBridge } from './bridges/live-mode'
 import { setupMidJobBridge } from './bridges/mid-job'
+import { setupMiniGamesBridge } from './bridges/mini-games'
 import { setupPhoneChatBridge } from './bridges/phone-chat'
 import { setupRoutinesBridge } from './bridges/routines'
 import { initializeStageThreeRuntimeTraceBridge } from './bridges/stage-three-runtime-trace'
@@ -337,6 +338,8 @@ function createFullStageRuntime() {
   setupToolboxBridge(context.value)
   // FAIRY: only the main window shows her model, so only it acts out what happens to her on the desktop.
   setupAvatarStateBridge(context.value)
+  // FAIRY: only the main window runs her turns, so only it tells her how a mini game ended.
+  setupMiniGamesBridge(context.value)
 
   return {
     async initialize() {
