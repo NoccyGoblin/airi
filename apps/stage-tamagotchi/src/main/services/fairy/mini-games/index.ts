@@ -11,7 +11,7 @@ import { BrowserWindow, screen } from 'electron'
 import { electronGameOver, electronPlayGame } from '../../../../shared/eventa'
 import { bubblePlace } from '../activity-bubble/place'
 import { gamePage, rpsOutcome } from './page'
-import { herMove, winnerOf } from './tic-tac-toe'
+import { emptyBoard, herMove, winnerOf } from './tic-tac-toe'
 
 /**
  * FAIRY: small games with the character in a window next to her. The game runs here and in its page, so a move
@@ -55,7 +55,7 @@ export function createMiniGamesService(params: { context: ReturnType<typeof crea
         open = undefined
     })
 
-    let board: Cell[] = Array.from({ length: 9 }).fill('')
+    let board: Cell[] = emptyBoard()
     let score = { you: 0, her: 0 }
     const run = (code: string) => window.isDestroyed() ? Promise.resolve() : window.webContents.executeJavaScript(code).catch(() => {})
     const load = () => window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(gamePage(game, characterName))}`)
@@ -65,7 +65,7 @@ export function createMiniGamesService(params: { context: ReturnType<typeof crea
       event.preventDefault()
       const [kind, value] = title.split(':')
       if (kind === 'again') {
-        board = Array.from({ length: 9 }).fill('')
+        board = emptyBoard()
         score = { you: 0, her: 0 }
         void load()
         return
