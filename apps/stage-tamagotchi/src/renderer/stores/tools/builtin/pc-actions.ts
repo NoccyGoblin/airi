@@ -29,6 +29,8 @@ export const WANDER_MODE_TOOL_NAME = 'wander_mode'
 export const READ_APP_TOOL_NAME = 'read_app'
 export const CLICK_ELEMENT_TOOL_NAME = 'click_element'
 export const CLICK_ON_TOOL_NAME = 'click_on'
+export const CIRCLE_ON_SCREEN_TOOL_NAME = 'circle_on_screen'
+export const DOODLE_TOOL_NAME = 'doodle'
 export const DESCRIBE_SCREEN_TOOL_NAME = 'describe_screen'
 export const SCROLL_TOOL_NAME = 'scroll'
 export const PRESS_KEYS_TOOL_NAME = 'press_keys'
@@ -240,6 +242,36 @@ const tools: Promise<Tool>[] = [
       target: z.string().describe('What to click, described as it looks on screen.'),
       button: z.enum(['left', 'right']).describe('The mouse button. Use "left" unless the owner asked for a right-click.'),
       double_click: z.boolean().describe('True to double-click, for example to open a file on the desktop.'),
+    }),
+  }),
+  tool({
+    name: CIRCLE_ON_SCREEN_TOOL_NAME,
+    description: [
+      'Draw a circle around something on the owner\'s screen to point it out, for example "the Start button" or "the error message". Describe it as it looks on screen.',
+      'It finds the thing in a fresh screenshot and circles it, with an optional short label. The circle fades after a few seconds and clicks go through it.',
+    ].join(' '),
+    execute: async (input: { target: string, label: string }) => {
+      const { shot, answer } = await locateOnScreen(input.target)
+      if (!answer.found)
+        return JSON.stringify({ ok: false, message: `Did not find it: ${answer.reason ?? 'not found'}.` })
+      return act({ kind: 'mark', captureId: shot.captureId, x: Math.round(answer.x!), y: Math.round(answer.y!), label: input.label.trim() || undefined })
+    },
+    parameters: z.object({
+      target: z.string().describe('What to circle, described as it looks on screen.'),
+      label: z.string().max(40).describe('A few words to write next to the circle, or an empty text.'),
+    }),
+  }),
+  tool({
+    name: DOODLE_TOOL_NAME,
+    description: [
+      'Draw a doodle on the owner\'s screen, for example when they ask you to draw a cat. You write it as one SVG with viewBox="0 0 400 400" and plain line shapes: path, circle, ellipse, line, polyline, polygon, rect, and short text.',
+      'It is drawn stroke by stroke in pink unless you set a stroke color, and fades after a few seconds. Use no fill for most shapes, so it looks like a line drawing. No scripts, links, or pictures.',
+    ].join(' '),
+    execute: async (input: { svg: string, where: 'near-you' | 'center' }) =>
+      act({ kind: 'doodle', svg: input.svg, near: input.where === 'near-you' ? { x: window.screenX, y: window.screenY, width: window.outerWidth, height: window.outerHeight } : undefined }),
+    parameters: z.object({
+      svg: z.string().max(40_000).describe('One <svg viewBox="0 0 400 400"> element with simple shapes.'),
+      where: z.enum(['near-you', 'center']).describe('Next to you, or in the middle of the screen.'),
     }),
   }),
   tool({

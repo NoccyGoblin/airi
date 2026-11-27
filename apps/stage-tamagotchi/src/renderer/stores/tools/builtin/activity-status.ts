@@ -36,6 +36,8 @@ const LINES: Record<string, (input: Input) => string> = {
   read_app: input => withDetail('Looking at', input.app || 'the app'),
   click_element: () => 'Clicking…',
   click_on: input => withDetail('Clicking', input.target),
+  circle_on_screen: input => withDetail('Circling', input.target),
+  doodle: () => 'Doodling something for you…',
   describe_screen: () => 'Looking at your screen…',
   scroll: input => `Scrolling ${input.direction === 'up' ? 'up' : 'down'}…`,
   browser_open: input => withDetail('Opening', input.url),

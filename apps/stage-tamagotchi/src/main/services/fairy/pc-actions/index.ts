@@ -24,7 +24,10 @@ import { uIOhook, UiohookKey } from 'uiohook-napi'
 
 import { electronPcAction, electronPcCapture } from '../../../../shared/eventa'
 import { isClickThroughWindow } from '../activity-bubble'
+import { bubblePlace } from '../activity-bubble/place'
 import { captureWithoutAiri } from '../look-at-screen'
+import { drawDoodle, drawMark } from '../screen-draw'
+import { doodleProblem } from '../screen-draw/page'
 import { matchOpenWindows, matchStartApps, normalizeWebAddress } from './apps'
 import { chatKindOf } from './chats'
 import { describeKeyCombination, parseKeyCombination } from './keys'
@@ -217,6 +220,10 @@ async function frontAppForInput(): Promise<{ processId: number, processName: str
 
 /** A pause between clicks in one call, so the app keeps up. */
 const CLICK_SETTLE_MS = 150
+/** The size of a circle mark around a found thing, in DIP. */
+const MARK_RADIUS = 46
+/** The box of a doodle, in DIP. */
+const DOODLE_SIZE = { width: 360, height: 360 }
 /** The most clicks in one call. */
 const MAX_CLICKS = 20
 
@@ -438,6 +445,28 @@ async function run(request: PcActionRequest, stopsAtStart: number): Promise<stri
       await powerShell.run(clickScript(point, request.button, request.double))
       await sleep(KEY_SETTLE_MS)
       return `${request.double ? 'Double-clicked' : request.button === 'right' ? 'Right-clicked' : 'Clicked'} at (${request.x}, ${request.y}) of the screenshot.`
+    }
+    case 'mark': {
+      const capture = captures.get(request.captureId)
+      if (!capture)
+        throw new Error('That screenshot is too old. Find the thing again.')
+      const point = screen.screenToDipPoint(screenPointOf({ x: request.x, y: request.y }, capture.image, capture.display))
+      await drawMark(point, MARK_RADIUS, request.label)
+      return `Drew a circle there${request.label ? ` with "${request.label}"` : ''}. It fades in a few seconds.`
+    }
+    case 'doodle': {
+      const problem = doodleProblem(request.svg)
+      if (problem)
+        throw new Error(problem)
+      const near = request.near
+      const area = (near ? screen.getDisplayMatching(near) : screen.getDisplayNearestPoint(screen.getCursorScreenPoint())).workArea
+      // Next to her when the window is known, else in the middle of the screen.
+      const spot = near
+        ? bubblePlace(near, DOODLE_SIZE, area)
+        : { x: Math.round(area.x + (area.width - DOODLE_SIZE.width) / 2), y: Math.round(area.y + (area.height - DOODLE_SIZE.height) / 2) }
+      if (!await drawDoodle(request.svg, { ...spot, ...DOODLE_SIZE }))
+        throw new Error('The doodle SVG could not be read. Write one <svg> with plain shapes.')
+      return 'Drew the doodle. It fades in a few seconds.'
     }
     case 'screen-text': {
       // The screen under the mouse, without AIRI's own windows, read by the OCR of Windows.

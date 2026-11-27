@@ -292,6 +292,8 @@ export type PcActionRequest
     | { kind: 'scroll', direction: 'up' | 'down', notches: number }
     | { kind: 'read-window', app?: string }
     | { kind: 'screen-text' }
+    | { kind: 'mark', captureId: string, x: number, y: number, label?: string }
+    | { kind: 'doodle', svg: string, near?: { x: number, y: number, width: number, height: number } }
     | { kind: 'play-youtube', query: string, pick?: number }
     | { kind: 'click-element', ids: number[], button: 'left' | 'right', double: boolean }
 export interface PcActionResult {

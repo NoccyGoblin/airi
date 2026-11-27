@@ -55,11 +55,13 @@ vi.mock('./builtin/pc-actions', () => ({
   READ_APP_TOOL_NAME: 'read_app',
   CLICK_ELEMENT_TOOL_NAME: 'click_element',
   CLICK_ON_TOOL_NAME: 'click_on',
+  CIRCLE_ON_SCREEN_TOOL_NAME: 'circle_on_screen',
+  DOODLE_TOOL_NAME: 'doodle',
   DESCRIBE_SCREEN_TOOL_NAME: 'describe_screen',
   SCROLL_TOOL_NAME: 'scroll',
   PRESS_KEYS_TOOL_NAME: 'press_keys',
   MEDIA_CONTROL_TOOL_NAME: 'media_control',
-  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'wander_mode', 'play_youtube', 'read_app', 'click_element', 'click_on', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
+  pcActionTools: vi.fn(async () => ['open_website', 'open_app', 'close_app', 'discord_message', 'type_text', 'press_keys', 'wander_mode', 'play_youtube', 'read_app', 'click_element', 'click_on', 'circle_on_screen', 'doodle', 'describe_screen', 'scroll', 'media_control'].map(executableTool)),
 }))
 vi.mock('./builtin/watch', () => ({
   WATCH_FOR_TOOL_NAME: 'watch_for',
@@ -139,6 +141,8 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:read_app', defaultActive: false },
       { id: 'tamagotchi:click_element', defaultActive: false },
       { id: 'tamagotchi:click_on', defaultActive: false },
+      { id: 'tamagotchi:circle_on_screen', defaultActive: false },
+      { id: 'tamagotchi:doodle', defaultActive: false },
       { id: 'tamagotchi:describe_screen', defaultActive: false },
       { id: 'tamagotchi:scroll', defaultActive: false },
       { id: 'tamagotchi:media_control', defaultActive: false },

@@ -36,6 +36,11 @@ export function isClickThroughWindow(window: BrowserWindow) {
   return clickThroughWindows.has(window)
 }
 
+/** Marks another window that only shows, such as the drawing layer, so click checks skip it too. */
+export function markClickThrough(window: BrowserWindow) {
+  clickThroughWindows.add(window)
+}
+
 /** Shows a short line in the bubble for a moment, for example when she is thrown. The main window sets it up. */
 let sayLine: ((text: string, holdMs: number) => void) | undefined
 
