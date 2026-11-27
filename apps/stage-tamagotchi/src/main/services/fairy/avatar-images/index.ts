@@ -12,7 +12,7 @@ import { errorMessageFrom } from '@moeru/std'
 
 import { electronAvatarImages, electronAvatarImagesChanged } from '../../../../shared/eventa'
 import { FAIRY_DATA_DIR } from '../memory-files'
-import { writePlaceholderImages } from './placeholders'
+import { PLACEHOLDER_MARK, upgradePlaceholderImages, writePlaceholderImages } from './placeholders'
 
 /**
  * FAIRY: the images of the character's sprite avatar, from `fairy-data/avatar`. Each file is named after a state,
@@ -32,12 +32,27 @@ export function stateOfFile(name: string) {
   return TYPES[extension] ? name.slice(0, -extension.length).toLowerCase() : undefined
 }
 
+/**
+ * Whether an SVG is one of our placeholders: the current ones carry the mark, and the first version had its own
+ * size and hair color.
+ */
+export function isOurPlaceholder(content: string) {
+  return content.includes(PLACEHOLDER_MARK) || (content.includes('viewBox="0 0 200 220"') && content.includes('#ffb3d9'))
+}
+
+let upgraded = false
+
 async function readImages(): Promise<Record<string, string>> {
   if (!existsSync(AVATAR_DIR)) {
     await mkdir(AVATAR_DIR, { recursive: true })
     await writePlaceholderImages(AVATAR_DIR)
     log.log(`made ${AVATAR_DIR} with placeholder images. Put your own drawings there.`)
   }
+  else if (!upgraded) {
+    // Our older placeholders get the newer drawings. The owner's own images stay.
+    await upgradePlaceholderImages(AVATAR_DIR, isOurPlaceholder)
+  }
+  upgraded = true
   const images: Record<string, string> = {}
   for (const name of await readdir(AVATAR_DIR)) {
     const state = stateOfFile(name)
