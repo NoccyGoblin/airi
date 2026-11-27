@@ -1,6 +1,6 @@
 import type { AudioPlayer, VoiceConnection } from '@discordjs/voice'
 import type { createContext } from '@moeru/eventa/adapters/electron/main'
-import type { Guild, Message, VoiceBasedChannel } from 'discord.js'
+import type { ChatInputCommandInteraction, Guild, Message, VoiceBasedChannel } from 'discord.js'
 import type { InferOutput } from 'valibot'
 
 import type { DiscordTurnReply, DiscordTurnRequest } from '../../../../shared/eventa'
@@ -19,14 +19,14 @@ import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
 import { Mutex } from 'async-mutex'
-import { ChannelType, Client, Events, GatewayIntentBits, Partials } from 'discord.js'
+import { ApplicationCommandOptionType, ApplicationIntegrationType, ChannelType, Client, Events, GatewayIntentBits, InteractionContextType, MessageFlags, Partials } from 'discord.js'
 import { array, object, optional, parse, string } from 'valibot'
 
 import { electronDiscordReply, electronDiscordTurn } from '../../../../shared/eventa'
 import { LOCAL_VOICE_PORT } from '../local-voice'
 import { FAIRY_DATA_DIR } from '../memory-files'
 import { discordPcmSeconds, discordPcmToHearing, HEARING_RATE, monoToDiscordPcm, monoWav } from './audio'
-import { callCommand, callsName, isNoise, nameSpellings } from './words'
+import { callCommand, callsName, commandNameFor, isNoise, nameSpellings } from './words'
 
 /**
  * FAIRY: the character's own Discord bot. She answers when someone names or mentions her in a text channel, and she
@@ -294,6 +294,46 @@ export function createDiscordBotService(params: { context: ReturnType<typeof cre
     }).catch(error => log.warn(`text answer failed: ${errorMessageFrom(error)}`))
   }
 
+  /**
+   * Registers her slash command, for example /lumi. The owner can add the app to their own account, so the command
+   * also works in their direct messages and group chats with friends. Discord lets an app see only the command there,
+   * never the rest of the chat.
+   */
+  async function registerCommand(ready: Client<true>, settings: BotSettings) {
+    const name = settings.character || 'Lumi'
+    await ready.application.commands.set([{
+      name: commandNameFor(name),
+      description: `Say something to ${name}. She answers in this chat.`.slice(0, 100),
+      options: [
+        { type: ApplicationCommandOptionType.String, name: 'message', description: `What you want to say to ${name}`.slice(0, 100), required: true, maxLength: 1500 },
+        { type: ApplicationCommandOptionType.Boolean, name: 'private', description: 'Only you see her answer', required: false },
+      ],
+      integrationTypes: [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall],
+      contexts: [InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel],
+    }])
+    log.log(`registered the /${commandNameFor(name)} command`)
+  }
+
+  async function onCommand(interaction: ChatInputCommandInteraction, settings: BotSettings) {
+    if (interaction.commandName !== commandNameFor(settings.character || 'Lumi'))
+      return
+    const text = interaction.options.getString('message', true)
+    const hidden = interaction.options.getBoolean('private') ?? false
+    // Discord waits only 3 seconds for an answer, so she says she is thinking first.
+    await interaction.deferReply(hidden ? { flags: MessageFlags.Ephemeral } : {})
+    const place = interaction.context === InteractionContextType.PrivateChannel
+      ? 'a private chat between the owner and their friends. The owner called you there with a command, and you see only this message'
+      : interaction.context === InteractionContextType.BotDM
+        ? 'a direct message'
+        : `#${interaction.channel && 'name' in interaction.channel ? interaction.channel.name : 'chat'} on ${interaction.guild?.name ?? 'Discord'}`
+    log.log(`command for her from ${interaction.user.username} in ${interaction.guild?.name ?? 'a private chat'}`)
+    const reply = await turns.runExclusive(() => ask({ place, speaker: interaction.user.displayName, text, voice: false }, settings))
+    const parts = splitMessage(reply.ok && reply.reply ? reply.reply : 'Sorry, no answer came this time.')
+    await interaction.editReply({ content: parts[0], allowedMentions: { parse: [] } })
+    for (const part of parts.slice(1))
+      await interaction.followUp({ content: part, allowedMentions: { parse: [] }, ...(hidden ? { flags: MessageFlags.Ephemeral } : {}) })
+  }
+
   async function start() {
     const settings = await loadSettings()
     if (!settings || stopped)
@@ -302,8 +342,15 @@ export function createDiscordBotService(params: { context: ReturnType<typeof cre
       intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages],
       partials: [Partials.Channel],
     })
-    client.once(Events.ClientReady, ready => log.log(`the Discord bot is online as ${ready.user.tag} in ${ready.guilds.cache.size} server(s)`))
+    client.once(Events.ClientReady, (ready) => {
+      log.log(`the Discord bot is online as ${ready.user.tag} in ${ready.guilds.cache.size} server(s)`)
+      void registerCommand(ready, settings).catch(error => log.warn(`could not register the command: ${errorMessageFrom(error)}`))
+    })
     client.on(Events.MessageCreate, message => void onMessage(message, settings))
+    client.on(Events.InteractionCreate, (interaction) => {
+      if (interaction.isChatInputCommand())
+        void onCommand(interaction, settings).catch(error => log.warn(`command answer failed: ${errorMessageFrom(error)}`))
+    })
     client.on(Events.Error, error => log.warn(`Discord error: ${errorMessageFrom(error)}`))
     await client.login(settings.token.trim())
   }

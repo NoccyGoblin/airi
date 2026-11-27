@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { callCommand, callsName, isNoise, nameSpellings } from './words'
+import { callCommand, callsName, commandNameFor, isNoise, nameSpellings } from './words'
 
 describe('callsName', () => {
   const names = nameSpellings('Lumi')
@@ -39,5 +39,13 @@ describe('isNoise', () => {
     expect(isNoise(' you')).toBe(true)
     expect(isNoise('Thank you.')).toBe(true)
     expect(isNoise('Lumi, you there?')).toBe(false)
+  })
+})
+
+describe('commandNameFor', () => {
+  it('names the command after her', () => {
+    expect(commandNameFor('Lumi')).toBe('lumi')
+    expect(commandNameFor('Mr. Sparkles ✨')).toBe('mr-sparkles')
+    expect(commandNameFor('✨')).toBe('ask')
   })
 })

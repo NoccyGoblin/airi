@@ -54,3 +54,15 @@ export function isNoise(text: string) {
   const words = plain(text)
   return !words || NOISE_TEXTS.has(words)
 }
+
+/**
+ * The slash command for the character, named after her. Discord allows lower case letters, digits, "-", and "_", up
+ * to 32 characters.
+ *
+ * @example
+ * commandNameFor('Lumi') // => 'lumi'
+ */
+export function commandNameFor(character: string) {
+  const name = plain(character).replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '').slice(0, 32)
+  return name || 'ask'
+}
