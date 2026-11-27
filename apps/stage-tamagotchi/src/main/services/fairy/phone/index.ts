@@ -223,6 +223,14 @@ export function startPhoneServer() {
       return answer(reply, { card: reply.card })
     }))
 
+    // The phone app's own wake word listener asks for the active character's wake words.
+    app.get('/api/wake', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const reply = await askMainWindow({ kind: 'wake' })
+      return answer(reply, { wake: reply.wake })
+    }))
+
     async function controls() {
       const look = await askMainWindow({ kind: 'look' })
       return { ok: true, modes: readModes(), sprite: look.ok ? look.sprite : undefined }

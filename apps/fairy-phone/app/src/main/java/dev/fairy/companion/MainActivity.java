@@ -2,6 +2,7 @@ package dev.fairy.companion;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.role.RoleManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -11,10 +12,12 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.InputType;
 import android.util.Base64;
 import android.view.Gravity;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -47,6 +50,7 @@ public class MainActivity extends Activity {
     private static final String PAGE_URL = "pageUrl";
     private static final int PICK_FILE = 1;
     private static final int ASK_MIC = 2;
+    private static final int ASK_NOTIFICATIONS = 3;
 
     /** Pictures are shrunk to this side, so they upload fast over mobile data. The page does the same. */
     private static final int SHARE_IMAGE_SIDE = 1280;
@@ -66,6 +70,9 @@ public class MainActivity extends Activity {
 
         listenWhenReady = getIntent().getBooleanExtra(EXTRA_LISTEN, false);
         pendingShare = readShare(getIntent());
+        // Android lets the app start its microphone service only while it shows, so it starts here after a reboot.
+        if (prefs().getBoolean(WakeService.PREF_ON, false))
+            WakeService.start(this);
         if (savePairing(getIntent()))
             return;
         String url = prefs().getString(PAGE_URL, null);
@@ -163,6 +170,7 @@ public class MainActivity extends Activity {
             settings.setMediaPlaybackRequiresUserGesture(false);
             // The page hides its "get the app" offer inside the app.
             settings.setUserAgentString(settings.getUserAgentString() + " FairyCompanionApp/1");
+            web.addJavascriptInterface(new AppBridge(), "FairyApp");
             web.setWebViewClient(new PageClient());
             web.setWebChromeClient(new PageChrome());
         }
@@ -242,6 +250,61 @@ public class MainActivity extends Activity {
     private void listen() {
         if (web != null)
             web.evaluateJavascript("window.fairyListen && window.fairyListen()", null);
+    }
+
+    // While the app shows, the wake word listener lets go of the microphone, so voice messages work.
+    @Override
+    protected void onResume() {
+        super.onResume();
+        WakeService.paused = true;
+    }
+
+    @Override
+    protected void onPause() {
+        WakeService.paused = false;
+        super.onPause();
+    }
+
+    /** What the phone page can ask of the app, as `window.FairyApp`. Only the paired page loads in the web view. */
+    private class AppBridge {
+        @JavascriptInterface
+        public boolean wakeOn() {
+            return prefs().getBoolean(WakeService.PREF_ON, false);
+        }
+
+        @JavascriptInterface
+        public void setWake(boolean on) {
+            runOnUiThread(() -> {
+                prefs().edit().putBoolean(WakeService.PREF_ON, on).apply();
+                if (on) {
+                    if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                        requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, ASK_NOTIFICATIONS);
+                    WakeService.start(MainActivity.this);
+                }
+                else {
+                    stopService(new Intent(MainActivity.this, WakeService.class));
+                }
+            });
+        }
+
+        /** Whether the app is the phone's digital assistant. Only then can the wake word open it from the background. */
+        @JavascriptInterface
+        public boolean isAssistant() {
+            RoleManager roles = getSystemService(RoleManager.class);
+            return roles != null && roles.isRoleHeld(RoleManager.ROLE_ASSISTANT);
+        }
+
+        @JavascriptInterface
+        public void openAssistantSettings() {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS));
+                }
+                catch (Exception error) {
+                    startActivity(new Intent(Settings.ACTION_SETTINGS));
+                }
+            });
+        }
     }
 
     @Override

@@ -1,5 +1,6 @@
 import type { createContext } from '@moeru/eventa/adapters/electron/renderer'
 import type { PcmBlock } from '@proj-airi/pipelines-audio'
+import type { WakeWord } from '@proj-airi/stage-ui/libs/voice/wake-words'
 import type { ChatHistoryItem } from '@proj-airi/stage-ui/types/chat'
 import type { ChatSessionMeta } from '@proj-airi/stage-ui/types/chat-session'
 
@@ -8,6 +9,7 @@ import type { PhoneChatReply, PhoneChatRequest, PhoneChatRow } from '../../share
 import { defineInvoke } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
 import { toSpeechText } from '@proj-airi/core-agent'
+import { kwsModel, kwsSearch, kwsToneVariants } from '@proj-airi/stage-ui/libs/voice/kws-model'
 import { useChatStore } from '@proj-airi/stage-ui/stores/chat'
 import { useChatSessionStore } from '@proj-airi/stage-ui/stores/chat/session-store'
 import { useAiriCardStore } from '@proj-airi/stage-ui/stores/modules/airi-card'
@@ -126,6 +128,24 @@ function chatRows(activeSessionId: string): PhoneChatRow[] {
     }))
 }
 
+/**
+ * The wake words of a card as lines of a sherpa-onnx keywords file, for the phone app's own keyword spotter. It
+ * uses the same model, search settings, and tone variants as the PC.
+ *
+ * @example
+ * wakeKeywords([{ text: 'Hey Lumi', modelId, pronunciations: [['HH', 'EY1', 'L', 'UW1', 'M', 'IY0']] }])
+ * // => ['HH EY1 L UW1 M IY0 :1.5 #0.1 @Hey_Lumi']
+ */
+export function wakeKeywords(words: readonly WakeWord[]): string[] {
+  const lines = new Set<string>()
+  for (const word of words.filter(word => word.modelId === kwsModel.id)) {
+    const label = word.text.replace(/\s+/g, '_')
+    for (const tokens of word.pronunciations.flatMap(pronunciation => [pronunciation, ...kwsToneVariants(pronunciation)]))
+      lines.add(`${tokens.join(' ')} :${kwsSearch.score} #${kwsSearch.threshold} @${label}`)
+  }
+  return [...lines]
+}
+
 /** The character of a session, for the phone page. */
 function characterOf(sessionId: string): { character?: string, characterId?: string } {
   const [characterId] = useChatSessionStore().characterMembersOf(sessionId)
@@ -238,6 +258,11 @@ export function setupPhoneChatBridge(context: RendererContext) {
         }
         const saved = cards.getCard(cards.activeCardId) ?? card
         await send({ id: request.id, ok: true, card: { id: cards.activeCardId, name: saved.name, description: saved.description ?? '', personality: saved.personality ?? '', scenario: saved.scenario ?? '' } }, sessionId)
+        return
+      }
+      if (request.kind === 'wake') {
+        const cards = useAiriCardStore()
+        await send({ id: request.id, ok: true, wake: { modelId: kwsModel.id, keywords: wakeKeywords(cards.getCard(cards.activeCardId)?.extensions?.airi?.wakeWords ?? []) } }, sessionId)
         return
       }
       if (request.kind === 'look') {

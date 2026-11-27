@@ -544,6 +544,15 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
     const box = $('phone')
     box.innerHTML = ''
     box.appendChild(switchRow('🔊', 'Spoken replies', 'She answers out loud.', voiceOn, on => setVoice(on)))
+    // The phone app listens for her wake word with the screen off. The browser cannot.
+    if (window.FairyApp) {
+      box.appendChild(switchRow('👂', 'Hey ' + name, 'Listens for her name, also with the screen off. The listening stays on the phone. Uses some battery.', window.FairyApp.wakeOn(), (on) => {
+        window.FairyApp.setWake(on)
+        toast(on ? 'Say "Hey ' + name + '" any time' : 'Stopped listening')
+      }))
+      if (!window.FairyApp.isAssistant())
+        box.appendChild(linkRow('🧭', 'Make ' + name + ' your assistant', 'Then "Hey ' + name + '" and the side button open her straight away.', () => window.FairyApp.openAssistantSettings()))
+    }
     if (canPush && !inApp) box.appendChild(linkRow(pushOn ? '🔔' : '🔕', 'Notifications', pushOn ? name + ' can message this phone.' : 'Let ' + name + ' message this phone.', enablePush))
     if (android && !inApp) {
       box.appendChild(linkRow('📱', 'Get the app', 'Download the app for this phone.', () => { location.href = './fairy-phone.apk?key=' + encodeURIComponent(key) }))

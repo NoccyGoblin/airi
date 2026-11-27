@@ -252,7 +252,7 @@ export const electronMemoryFilesChanged = defineEventa('eventa:event:electron:fa
 /** FAIRY: a message from the phone page, which the main window answers with `electronPhoneChatReply`. */
 export interface PhoneChatRequest {
   id: string
-  kind: 'send' | 'history' | 'characters' | 'switch' | 'chats' | 'open-chat' | 'new-chat' | 'card' | 'save-card' | 'look'
+  kind: 'send' | 'history' | 'characters' | 'switch' | 'chats' | 'open-chat' | 'new-chat' | 'card' | 'save-card' | 'look' | 'wake'
   /** For `open-chat`: the chat to make active, on the PC and the phone. */
   sessionId?: string
   /** For `save-card`: the new text of the active character's card. Missing fields stay as they are. */
@@ -292,6 +292,8 @@ export interface PhoneChatReply {
   card?: PhoneCard
   /** For `look`: whether the sprite avatar shows instead of the Live2D model. */
   sprite?: boolean
+  /** For `wake`: the active character's wake words, as lines of a sherpa-onnx keywords file for the model `modelId`. */
+  wake?: { modelId: string, keywords: string[] }
   error?: string
 }
 /** FAIRY: one chat in the phone's chat list. */
