@@ -283,6 +283,8 @@ export interface PhoneChatReply {
 export const electronPhoneChatRequest = defineEventa<PhoneChatRequest>('eventa:event:electron:fairy:phone:request')
 export const electronPhoneChatReply = defineInvokeEventa<void, PhoneChatReply>('eventa:invoke:electron:fairy:phone:reply')
 /** The local port, the pairing key, and the Tailscale HTTPS address, for the QR code in Settings. */
+/** FAIRY: shows a notification on the owner's paired phones. `phones` counts the phones that turned notifications on. */
+export const electronPhoneNotify = defineInvokeEventa<{ sent: number, phones: number }, { title: string, text: string }>('eventa:invoke:electron:fairy:phone:notify')
 export const electronPhoneInfo = defineInvokeEventa<{ port: number, key: string, url?: string }>('eventa:invoke:electron:fairy:phone:info')
 
 /** FAIRY: one fast action on the PC that the owner asked the character for. */

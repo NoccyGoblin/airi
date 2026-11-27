@@ -37,13 +37,14 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   #preview img { height:64px; border-radius:8px; vertical-align:middle; }
   #preview button { width:28px; height:28px; font-size:14px; margin-left:6px; }
   input[type=file] { display:none; }
-  header button { margin-left:auto; width:36px; height:36px; font-size:17px; }
+  header button { width:36px; height:36px; font-size:17px; }
+  #bell { margin-left:auto; }
   button.mic { touch-action:none; user-select:none; -webkit-user-select:none; }
   button.mic.on { background:#d8466d; transform:scale(1.15); }
 </style>
 </head>
 <body>
-<header>🧚 <span id="name">AIRI</span><select id="who" aria-label="Character" style="display:none"></select> <small id="status">connecting…</small><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
+<header>🧚 <span id="name">AIRI</span><select id="who" aria-label="Character" style="display:none"></select> <small id="status">connecting…</small><button type="button" id="bell" aria-label="Notifications">🔕</button><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
 <div id="log"></div>
 <div id="preview"><img id="previewImg" alt=""><button type="button" id="clearImg" aria-label="Remove photo">✕</button></div>
 <form id="form">
@@ -245,6 +246,40 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   mic.addEventListener('contextmenu', e => e.preventDefault())
   text.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer:fine)').matches) { e.preventDefault(); $('form').requestSubmit() } })
 
+  // -- Notifications: the character can message this phone when the owner is away from the PC --
+  const bell = $('bell')
+  const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  function showBell(on) { bell.textContent = on ? '🔔' : '🔕'; bell.setAttribute('aria-pressed', String(on)) }
+  function keyBytes(b64) {
+    const s = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4))
+    return Uint8Array.from(s, c => c.charCodeAt(0))
+  }
+  async function subscribe() {
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      const data = await api('./api/push-key')
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(data.key) })
+    }
+    await api('./api/push-subscribe', sub.toJSON())
+    showBell(true)
+  }
+  bell.onclick = async () => {
+    if (!canPush) { note('This browser cannot show notifications from this page. Add it to the home screen in Chrome.'); return }
+    try {
+      if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') { note('Notifications are blocked. Allow them in the site settings of this page.'); return }
+      await subscribe()
+      note(name + ' can message this phone now.')
+    } catch (e) { note('Notifications did not turn on: ' + (e.message || e)) }
+  }
+  showBell(false)
+  if (canPush) {
+    navigator.serviceWorker.register('./sw.js').then(() => {
+      // The PC can lose a subscription, so a phone that allowed notifications sends it again on each visit.
+      if (key && Notification.permission === 'granted') subscribe().catch(() => {})
+    }).catch(() => {})
+  }
+
   if (!key) note('Open this page from the QR code in AIRI on your PC to pair this phone.')
   else { loadHistory(); loadCharacters() }
 })()
@@ -264,3 +299,17 @@ export const PHONE_MANIFEST = JSON.stringify({
 })
 
 export const PHONE_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#6d4bd8"/><text x="50" y="68" font-size="58" text-anchor="middle">🧚</text></svg>`
+
+/** The service worker of the phone page. It only shows the character's notifications and opens the chat on a tap. */
+export const PHONE_SERVICE_WORKER = /* js */ `self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', event => event.waitUntil(self.clients.claim()))
+self.addEventListener('push', (event) => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch {}
+  event.waitUntil(self.registration.showNotification(data.title || 'New message', { body: data.body || '', icon: './icon.svg', tag: 'fairy-message', renotify: true }))
+})
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.length ? list[0].focus() : self.clients.openWindow('./')))
+})
+`

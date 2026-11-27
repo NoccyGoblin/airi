@@ -14,10 +14,11 @@ import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { eventHandler, H3 } from 'h3'
 
-import { electronPhoneChatReply, electronPhoneChatRequest, electronPhoneInfo } from '../../../../shared/eventa'
+import { electronPhoneChatReply, electronPhoneChatRequest, electronPhoneInfo, electronPhoneNotify } from '../../../../shared/eventa'
 import { createH3Server } from '../../airi/http-server/server'
 import { FAIRY_DATA_DIR } from '../memory-files'
-import { PHONE_ICON_SVG, PHONE_MANIFEST, PHONE_PAGE_HTML } from './page'
+import { PHONE_ICON_SVG, PHONE_MANIFEST, PHONE_PAGE_HTML, PHONE_SERVICE_WORKER } from './page'
+import { addPushSubscription, pushPublicKey, sendPhoneNotification } from './push'
 
 /**
  * FAIRY: the phone page. The PC serves a chat page that a phone opens over Tailscale, so there is one character with one
@@ -27,6 +28,7 @@ import { PHONE_ICON_SVG, PHONE_MANIFEST, PHONE_PAGE_HTML } from './page'
  *   so it is never on the local network or the internet.
  * - Every API call needs the pairing key from `fairy-data/phone/key.txt` (it comes in the QR code link).
  * - A message goes to the main window, which sends it into the active chat and returns the character's reply.
+ * - The character can also message the phone first, with a notification (see ./push.ts).
  */
 
 export const PHONE_PORT = 7461
@@ -100,6 +102,25 @@ export function startPhoneServer() {
     app.get('/', eventHandler(() => new Response(PHONE_PAGE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })))
     app.get('/manifest.webmanifest', eventHandler(() => new Response(PHONE_MANIFEST, { headers: { 'Content-Type': 'application/manifest+json' } })))
     app.get('/icon.svg', eventHandler(() => new Response(PHONE_ICON_SVG, { headers: { 'Content-Type': 'image/svg+xml' } })))
+    app.get('/sw.js', eventHandler(() => new Response(PHONE_SERVICE_WORKER, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' } })))
+
+    app.get('/api/push-key', eventHandler(async (event) => {
+      if (!keyMatches(event.req.headers.get('x-fairy-key'), key))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      return json({ ok: true, key: await pushPublicKey() })
+    }))
+
+    app.post('/api/push-subscribe', eventHandler(async (event) => {
+      if (!keyMatches(event.req.headers.get('x-fairy-key'), key))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      try {
+        await addPushSubscription(JSON.parse((await event.req.text()).slice(0, 4000)))
+      }
+      catch {
+        return json({ ok: false, error: 'Bad request' }, 400)
+      }
+      return json({ ok: true })
+    }))
 
     app.get('/api/history', eventHandler(async (event) => {
       if (!keyMatches(event.req.headers.get('x-fairy-key'), key))
@@ -169,6 +190,7 @@ export function startPhoneServer() {
 export function createPhoneService(params: { context: MainContext }) {
   mainContext = params.context
   void startPhoneServer()
+  defineInvokeHandler(params.context, electronPhoneNotify, ({ title, text }) => sendPhoneNotification({ title: title.slice(0, 80), body: text.slice(0, 500) }))
   defineInvokeHandler(params.context, electronPhoneChatReply, (reply) => {
     pending.get(reply.id)?.(reply)
     pending.delete(reply.id)

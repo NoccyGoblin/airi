@@ -63,6 +63,7 @@ const LINES: Record<string, (input: Input) => string> = {
   list_watches: () => 'Checking what I watch…',
   stop_watching: () => 'Stopping a watch…',
   sticky_note: () => 'Writing you a note…',
+  message_phone: () => 'Texting your phone…',
   avatar_style: () => 'Changing my look…',
   mischief_mode: input => input.prank_now ? 'Hehehe…' : input.on ? 'Getting mischievous…' : 'Behaving now…',
   play_game: input => input.game === 'tic-tac-toe' ? 'Setting up tic-tac-toe…' : 'Ready for rock, paper, scissors…',
