@@ -252,7 +252,9 @@ export const electronMemoryFilesChanged = defineEventa('eventa:event:electron:fa
 /** FAIRY: a message from the phone page, which the main window answers with `electronPhoneChatReply`. */
 export interface PhoneChatRequest {
   id: string
-  kind: 'send' | 'history'
+  kind: 'send' | 'history' | 'characters' | 'switch'
+  /** For `switch`: the character card to make active, on the PC and the phone. */
+  characterId?: string
   text?: string
   /** A data URL of a JPEG, PNG, or WebP photo. */
   image?: string
@@ -272,6 +274,10 @@ export interface PhoneChatReply {
   messages?: { role: 'user' | 'assistant', text: string }[]
   /** The name of the character in the active chat, so the page shows who answers. */
   character?: string
+  /** The card id of that character. */
+  characterId?: string
+  /** For `characters`: every character the owner can switch to. */
+  characters?: { id: string, name: string }[]
   error?: string
 }
 export const electronPhoneChatRequest = defineEventa<PhoneChatRequest>('eventa:event:electron:fairy:phone:request')

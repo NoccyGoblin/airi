@@ -18,6 +18,8 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font: 16px/1.45 system-ui, sans-serif; }
   body { display:flex; flex-direction:column; padding-bottom: env(safe-area-inset-bottom); }
+  #who { background: transparent; color: inherit; font: inherit; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 2px 6px; }
+  #who option { color: #222; }
   header { padding: 14px 16px 10px; padding-top: calc(14px + env(safe-area-inset-top)); font-weight:600; display:flex; gap:8px; align-items:center; }
   header small { color:var(--muted); font-weight:400; }
   #log { flex:1; overflow-y:auto; padding: 8px 12px 16px; display:flex; flex-direction:column; gap:8px; }
@@ -41,7 +43,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
 </style>
 </head>
 <body>
-<header>🧚 <span id="name">AIRI</span> <small id="status">connecting…</small><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
+<header>🧚 <span id="name">AIRI</span><select id="who" aria-label="Character" style="display:none"></select> <small id="status">connecting…</small><button type="button" id="voice" aria-label="Spoken replies">🔊</button></header>
 <div id="log"></div>
 <div id="preview"><img id="previewImg" alt=""><button type="button" id="clearImg" aria-label="Remove photo">✕</button></div>
 <form id="form">
@@ -80,18 +82,37 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
     const res = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'X-Fairy-Key': key }, body: body ? JSON.stringify(body) : undefined })
     if (res.status === 401) throw new Error('This phone is not paired. Scan the QR code in AIRI on your PC again.')
     const data = await res.json().catch(() => ({}))
-    if (data.character) showName(data.character)
+    if (data.character) showName(data.character, data.characterId)
     if (!res.ok || data.ok === false) throw new Error(data.error || ('Error ' + res.status))
     return data
   }
 
   // The name of the character in the active chat on the PC. Every answer brings it, so a switch shows at once.
   let name = 'AIRI'
-  function showName(value) {
+  function showName(value, id) {
     name = value
     $('name').textContent = value
     document.title = value
     text.placeholder = 'Message ' + value + '…'
+    if (id) $('who').value = id
+  }
+
+  // With more than one character, the name turns into a picker. A switch changes the character on the PC too.
+  async function loadCharacters() {
+    try {
+      const data = await api('./api/characters')
+      const who = $('who')
+      who.innerHTML = ''
+      for (const c of data.characters) { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; who.appendChild(o) }
+      if (data.characterId) who.value = data.characterId
+      const many = data.characters.length > 1
+      who.style.display = many ? '' : 'none'
+      $('name').style.display = many ? 'none' : ''
+    } catch {}
+  }
+  $('who').onchange = async () => {
+    status.textContent = 'switching…'
+    try { await api('./api/switch', { id: $('who').value }); await loadHistory() } catch (e) { note(e.message) }
   }
 
   async function loadHistory() {
@@ -225,7 +246,7 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   text.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer:fine)').matches) { e.preventDefault(); $('form').requestSubmit() } })
 
   if (!key) note('Open this page from the QR code in AIRI on your PC to pair this phone.')
-  else loadHistory()
+  else { loadHistory(); loadCharacters() }
 })()
 </script>
 </body>

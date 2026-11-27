@@ -99,10 +99,10 @@ async function toDataUrl(audio: Blob) {
   return `data:${audioType(bytes)};base64,${btoa(binary)}`
 }
 
-/** The name of the character in a session, for the phone page. */
-function characterNameOf(sessionId: string): string | undefined {
+/** The character of a session, for the phone page. */
+function characterOf(sessionId: string): { character?: string, characterId?: string } {
   const [characterId] = useChatSessionStore().characterMembersOf(sessionId)
-  return characterId ? useAiriCardStore().getCard(characterId)?.name : undefined
+  return characterId ? { characterId, character: useAiriCardStore().getCard(characterId)?.name } : {}
 }
 
 /** Speaks the reply with the voice of the character in the session. Returns nothing when speech is not set up. */
@@ -122,7 +122,7 @@ async function speak(sessionId: string, text: string, signal: AbortSignal): Prom
  */
 export function setupPhoneChatBridge(context: RendererContext) {
   const reply = defineInvoke(context, electronPhoneChatReply)
-  const send = (answer: PhoneChatReply, sessionId: string) => reply({ ...answer, character: characterNameOf(sessionId) }).catch(error => console.warn('[phone] reply failed', errorMessageFrom(error)))
+  const send = (answer: PhoneChatReply, sessionId: string) => reply({ ...characterOf(sessionId), ...answer }).catch(error => console.warn('[phone] reply failed', errorMessageFrom(error)))
 
   async function answer(request: PhoneChatRequest, sessionId: string): Promise<PhoneChatReply> {
     const signal = AbortSignal.timeout(VOICE_TIMEOUT_MS)
@@ -157,6 +157,24 @@ export function setupPhoneChatBridge(context: RendererContext) {
     const sessions = useChatSessionStore()
     const sessionId = sessions.activeSessionId
     try {
+      if (request.kind === 'characters') {
+        const cards = useAiriCardStore()
+        await send({ id: request.id, ok: true, characters: [...cards.cards].map(([id, card]) => ({ id, name: card.name })) }, sessionId)
+        return
+      }
+      if (request.kind === 'switch') {
+        // The same switch as the character rail on the PC: the phone and the PC show one character.
+        const cards = useAiriCardStore()
+        if (!request.characterId || !await cards.activateCard(request.characterId)) {
+          await send({ id: request.id, ok: false, error: 'That character is not there.' }, sessionId)
+          return
+        }
+        // Her own chat becomes the active one, so the next phone message goes to her.
+        const next = await sessions.ensureCharacterSession(request.characterId)
+        sessions.activeSessionId = next
+        await send({ id: request.id, ok: true }, next)
+        return
+      }
       if (request.kind === 'history') {
         const messages = sessions.sessionMessages[sessionId] ?? []
         await send({ id: request.id, ok: true, messages: toPhoneMessages(messages.slice(-HISTORY_LENGTH)) }, sessionId)

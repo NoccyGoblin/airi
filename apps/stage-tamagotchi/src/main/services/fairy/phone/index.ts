@@ -105,7 +105,30 @@ export function startPhoneServer() {
       if (!keyMatches(event.req.headers.get('x-fairy-key'), key))
         return json({ ok: false, error: 'Not paired' }, 401)
       const reply = await askMainWindow({ kind: 'history' })
-      return reply.ok ? json({ ok: true, messages: reply.messages ?? [] }) : json({ ok: false, error: reply.error }, 503)
+      return reply.ok ? json({ ok: true, messages: reply.messages ?? [], character: reply.character, characterId: reply.characterId }) : json({ ok: false, error: reply.error }, 503)
+    }))
+
+    app.get('/api/characters', eventHandler(async (event) => {
+      if (!keyMatches(event.req.headers.get('x-fairy-key'), key))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const reply = await askMainWindow({ kind: 'characters' })
+      return reply.ok ? json({ ok: true, characters: reply.characters ?? [], character: reply.character, characterId: reply.characterId }) : json({ ok: false, error: reply.error }, 503)
+    }))
+
+    app.post('/api/switch', eventHandler(async (event) => {
+      if (!keyMatches(event.req.headers.get('x-fairy-key'), key))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      let body: { id?: unknown }
+      try {
+        body = JSON.parse((await event.req.text()).slice(0, 1000))
+      }
+      catch {
+        return json({ ok: false, error: 'Bad request' }, 400)
+      }
+      if (typeof body.id !== 'string' || !body.id)
+        return json({ ok: false, error: 'Bad request' }, 400)
+      const reply = await askMainWindow({ kind: 'switch', characterId: body.id.slice(0, 200) })
+      return reply.ok ? json({ ok: true, character: reply.character, characterId: reply.characterId }) : json({ ok: false, error: reply.error }, 503)
     }))
 
     app.post('/api/send', eventHandler(async (event) => {
@@ -128,7 +151,7 @@ export function startPhoneServer() {
         return json({ ok: false, error: 'Empty message' }, 400)
       const reply = await askMainWindow({ kind: 'send', text, image, audio, speak: body.speak === true })
       return reply.ok
-        ? json({ ok: true, heard: reply.heard, reply: reply.reply ?? '', speech: reply.speech })
+        ? json({ ok: true, heard: reply.heard, reply: reply.reply ?? '', speech: reply.speech, character: reply.character, characterId: reply.characterId })
         : json({ ok: false, error: reply.error }, 503)
     }))
 
