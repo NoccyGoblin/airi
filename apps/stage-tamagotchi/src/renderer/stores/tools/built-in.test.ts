@@ -81,6 +81,11 @@ vi.mock('./builtin/mini-games', () => ({
   PLAY_GAME_TOOL_NAME: 'play_game',
   miniGameTools: vi.fn(async () => [executableTool('play_game')]),
 }))
+vi.mock('./builtin/game-buddy', () => ({
+  GAME_BUDDY_TOOL_NAME: 'game_buddy',
+  SMART_SPOT_TOOL_NAME: 'smart_spot',
+  gameBuddyTools: vi.fn(async () => [executableTool('game_buddy'), executableTool('smart_spot')]),
+}))
 vi.mock('./builtin/phone-message', () => ({
   MESSAGE_PHONE_TOOL_NAME: 'message_phone',
   phoneMessageTools: vi.fn(async () => [executableTool('message_phone')]),
@@ -180,6 +185,8 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:stop_watching', defaultActive: false },
       { id: 'tamagotchi:sticky_note', defaultActive: false },
       { id: 'tamagotchi:message_phone', defaultActive: false },
+      { id: 'tamagotchi:game_buddy', defaultActive: false },
+      { id: 'tamagotchi:smart_spot', defaultActive: false },
       { id: 'tamagotchi:play_game', defaultActive: false },
       { id: 'tamagotchi:mischief_mode', defaultActive: false },
       { id: 'tamagotchi:avatar_style', defaultActive: false },

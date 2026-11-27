@@ -72,6 +72,7 @@ import { setupAvatarStateBridge } from './bridges/avatar-state'
 import { setupDiscordBridge } from './bridges/discord'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
 import { setupFileDropBridge } from './bridges/file-drop'
+import { setupGameBuddyBridge } from './bridges/game-buddy'
 import { initializeIOTraceHubBridge } from './bridges/io-trace-hub'
 import { setupLiveModeBridge } from './bridges/live-mode'
 import { setupMidJobBridge } from './bridges/mid-job'
@@ -343,6 +344,8 @@ function createFullStageRuntime() {
   setupMiniGamesBridge(context.value)
   // FAIRY: her desktop reactions follow the character on the stage.
   setupActiveCharacterBridge(context.value)
+  // FAIRY: she comments on big moments in the owner's League match.
+  setupGameBuddyBridge(context.value)
 
   return {
     async initialize() {

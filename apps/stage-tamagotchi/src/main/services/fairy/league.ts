@@ -27,7 +27,7 @@ const DDRAGON_CACHE_MS = 6 * 60 * 60 * 1000
 
 // -- Live game --
 
-function getLocalJson(path: string): Promise<unknown> {
+export function getLocalJson(path: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const req = request({
       host: LIVE_HOST,

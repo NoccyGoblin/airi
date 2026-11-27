@@ -9,6 +9,7 @@ import { defineStore } from 'pinia'
 import { AVATAR_STYLE_TOOL_NAME, avatarStyleTools } from './builtin/avatar-style'
 import { BROWSER_BACK_TOOL_NAME, BROWSER_CLICK_TOOL_NAME, BROWSER_CLOSE_TOOL_NAME, BROWSER_OPEN_TOOL_NAME, BROWSER_READ_TOOL_NAME, BROWSER_SCROLL_TOOL_NAME, BROWSER_TYPE_TOOL_NAME, browserTools } from './builtin/browser'
 import { fileTools, FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './builtin/files'
+import { GAME_BUDDY_TOOL_NAME, gameBuddyTools, SMART_SPOT_TOOL_NAME } from './builtin/game-buddy'
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
 import { miniGameTools, PLAY_GAME_TOOL_NAME } from './builtin/mini-games'
@@ -33,6 +34,9 @@ export const widgetToolReferences = [
   { name: STOP_WATCHING_TOOL_NAME },
   // FAIRY: sticky notes on the screen.
   { name: STICKY_NOTE_TOOL_NAME },
+  // FAIRY: game buddy mode and smart spot.
+  { name: GAME_BUDDY_TOOL_NAME },
+  { name: SMART_SPOT_TOOL_NAME },
   // FAIRY: notifications on the owner's phone.
   { name: MESSAGE_PHONE_TOOL_NAME },
   // FAIRY: mini games with her.
@@ -123,6 +127,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       watchTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
       stickyNoteTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
       phoneMessageTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
+      gameBuddyTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
       miniGameTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
       mischiefTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
       avatarStyleTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),

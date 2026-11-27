@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { AVATAR_STYLE_TOOL_NAME } from './avatar-style'
 import { BROWSER_BACK_TOOL_NAME, BROWSER_CLICK_TOOL_NAME, BROWSER_CLOSE_TOOL_NAME, BROWSER_OPEN_TOOL_NAME, BROWSER_READ_TOOL_NAME, BROWSER_SCROLL_TOOL_NAME, BROWSER_TYPE_TOOL_NAME } from './browser'
 import { FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './files'
+import { GAME_BUDDY_TOOL_NAME, SMART_SPOT_TOOL_NAME } from './game-buddy'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME } from './league'
 import { PLAY_GAME_TOOL_NAME } from './mini-games'
 import { MISCHIEF_MODE_TOOL_NAME } from './mischief'
@@ -51,8 +52,8 @@ export const TOOL_GROUPS = {
     tools: [WEB_SEARCH_TOOL_NAME, WIKIPEDIA_TOOL_NAME, 'get_weather', LEAGUE_LOOKUP_TOOL_NAME, LEAGUE_LIVE_GAME_TOOL_NAME],
   },
   stage: {
-    about: 'widgets on the stage, the image journal, mini games with the owner, mischief mode (pranks), and switching between your Live2D model and your sprite avatar',
-    tools: ['stage_widgets', 'image_journal', PLAY_GAME_TOOL_NAME, MISCHIEF_MODE_TOOL_NAME, AVATAR_STYLE_TOOL_NAME],
+    about: 'widgets on the stage, the image journal, mini games with the owner, mischief mode (pranks), game buddy mode (reacting to the owner\'s League matches), smart spot (staying off game menus), and switching between your Live2D model and your sprite avatar',
+    tools: ['stage_widgets', 'image_journal', PLAY_GAME_TOOL_NAME, MISCHIEF_MODE_TOOL_NAME, GAME_BUDDY_TOOL_NAME, SMART_SPOT_TOOL_NAME, AVATAR_STYLE_TOOL_NAME],
   },
 } as const
 

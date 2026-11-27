@@ -46,12 +46,14 @@ import { createAvatarImagesService } from '../../../services/fairy/avatar-images
 import { createDesktopLifeService } from '../../../services/fairy/desktop-life'
 import { createDiscordBotService } from '../../../services/fairy/discord'
 import { createFileDropService } from '../../../services/fairy/file-drop'
+import { createGameBuddyService } from '../../../services/fairy/game-buddy'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createMiniGamesService } from '../../../services/fairy/mini-games'
 import { createMischiefService } from '../../../services/fairy/mischief'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { createRoutineScheduler } from '../../../services/fairy/routines'
+import { createSmartSpotService } from '../../../services/fairy/smart-spot'
 import { createStickyNotesService } from '../../../services/fairy/sticky-notes'
 import { createStopKeyService } from '../../../services/fairy/stop-key'
 import { createWanderService } from '../../../services/fairy/wander'
@@ -123,6 +125,10 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createMiniGamesService({ context }))
   // FAIRY: mischief mode, small pranks when the owner turns it on.
   onWindowClosed(params.window, createMischiefService({ context, window: params.window }))
+  // FAIRY: game buddy mode reacts to the owner's League matches.
+  onWindowClosed(params.window, createGameBuddyService({ context }))
+  // FAIRY: smart spot keeps her off the menus of a full-screen game.
+  onWindowClosed(params.window, createSmartSpotService({ context, window: params.window }))
   // FAIRY: the images of her sprite avatar.
   onWindowClosed(params.window, createAvatarImagesService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)

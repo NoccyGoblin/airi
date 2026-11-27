@@ -388,6 +388,12 @@ export const electronAvatarImagesChanged = defineEventa<void>('eventa:event:elec
 export const electronCharacterSize = defineInvokeEventa<{ width: number, height: number }, { width: number, height: number }>('eventa:invoke:electron:fairy:character-size')
 
 /** FAIRY: turns mischief mode on or off, or plays one prank now. `played` names the prank. */
+/** FAIRY: turns game buddy mode on or off, and her real comments on big moments. */
+export const electronGameBuddy = defineInvokeEventa<{ enabled: boolean, comments: boolean, inMatch: boolean }, { enabled?: boolean, comments?: boolean } | undefined>('eventa:invoke:electron:fairy:game-buddy')
+/** FAIRY: a big moment in the owner's match. The main window lets her comment on it. */
+export const electronGameBuddyNotice = defineEventa<{ text: string }>('eventa:event:electron:fairy:game-buddy:notice')
+/** FAIRY: turns smart spot on or off, or forgets the spots the owner picked. `apps` names the apps with a picked spot. */
+export const electronSmartSpot = defineInvokeEventa<{ enabled: boolean, apps: string[] }, { enabled?: boolean, forget?: boolean } | undefined>('eventa:invoke:electron:fairy:smart-spot')
 export const electronMischief = defineInvokeEventa<{ enabled: boolean, played?: string }, { enabled?: boolean, prankNow?: boolean, character: string }>('eventa:invoke:electron:fairy:mischief')
 
 /** FAIRY: puts a sticky note on the owner's screen. `by` signs it with the character's name. */

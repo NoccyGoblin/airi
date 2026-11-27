@@ -37,6 +37,11 @@ export function setWanderPaused(reason: string, paused: boolean) {
     pauses.delete(reason)
 }
 
+/** Whether something other than `reason` holds her still now, so that something moves her, not the owner. */
+export function isWanderPausedBesides(reason: string) {
+  return [...pauses].some(other => other !== reason)
+}
+
 /** About 30 updates a second, smooth enough for a small window. */
 const FRAME_MS = 33
 /** She rests this long between flights, in a random time between the two. */

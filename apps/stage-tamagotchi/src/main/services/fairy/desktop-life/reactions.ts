@@ -27,6 +27,17 @@ const reactionsSchema = object({
   prankPopup: lines,
   prankDoodle: lines,
   prankNote: lines,
+  gameStart: lines,
+  gameKill: lines,
+  gameDeath: lines,
+  gameMultikill: lines,
+  gameFirstBlood: lines,
+  gameAce: lines,
+  gameEnemyAce: lines,
+  gameObjective: lines,
+  gameEnemyObjective: lines,
+  gameWin: lines,
+  gameLose: lines,
 })
 export type Reactions = Record<keyof typeof reactionsSchema.entries, string[]>
 export type ReactionKind = keyof Reactions
@@ -43,6 +54,17 @@ const FIRST_REACTIONS: Reactions = {
   prankPopup: ['⚠ {name} has taken over this PC. All your snacks belong to me now… just kidding 😜', '⚠ System update: your PC is now 100% more {name}. Just kidding 😜'],
   prankDoodle: ['Art! 🎨', 'You\'re welcome.'],
   prankNote: ['{name} was here ✨', 'I licked this screen. Just kidding. Maybe.', 'Drink some water 💧'],
+  gameStart: ['Good luck! I\'m watching~', 'Let\'s gooo!'],
+  gameKill: ['Nice!', 'Got \'em!', 'Hehe, clean.'],
+  gameDeath: ['Ouch…', 'Noooo!', 'That one was not your fault. Probably.'],
+  gameMultikill: ['WHAT?!', 'You\'re on fire!'],
+  gameFirstBlood: ['First blood! 🩸'],
+  gameAce: ['ACE! ✨'],
+  gameEnemyAce: ['…we don\'t talk about this.'],
+  gameObjective: ['Ours! 🐉'],
+  gameEnemyObjective: ['Hey, that was ours!'],
+  gameWin: ['GG! You did it! 🎉'],
+  gameLose: ['GG… next one is ours.'],
 }
 
 /** The character on the stage now, as the main window last said. */

@@ -66,6 +66,11 @@ export async function captureWithoutAiri(display: Display): Promise<LookAtScreen
  * Use when:
  * - Live mode captures the screen every second
  */
+/** Whether live mode keeps AIRI's windows out of captures now. */
+export function windowsKeptOutOfCaptures() {
+  return keepWindowsOutOfCaptures
+}
+
 export function setWindowsOutOfCaptures(on: boolean) {
   keepWindowsOutOfCaptures = on
   for (const w of BrowserWindow.getAllWindows()) {
