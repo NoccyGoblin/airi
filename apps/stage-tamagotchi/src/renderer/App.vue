@@ -67,6 +67,7 @@ import {
   electronPluginUnload,
 } from '../shared/eventa/plugin/host'
 import { electronPluginToolsChanged } from '../shared/eventa/plugin/tools'
+import { setupActiveCharacterBridge } from './bridges/active-character'
 import { setupAvatarStateBridge } from './bridges/avatar-state'
 import { setupDiscordBridge } from './bridges/discord'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
@@ -340,6 +341,8 @@ function createFullStageRuntime() {
   setupAvatarStateBridge(context.value)
   // FAIRY: only the main window runs her turns, so only it tells her how a mini game ended.
   setupMiniGamesBridge(context.value)
+  // FAIRY: her desktop reactions follow the character on the stage.
+  setupActiveCharacterBridge(context.value)
 
   return {
     async initialize() {

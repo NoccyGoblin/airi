@@ -8,11 +8,11 @@ import { FAIRY_DATA_DIR } from '../memory-files'
 
 /**
  * FAIRY: the short lines in her bubble when something happens to her on the desktop, such as a throw or a nap.
- * They are personality, so they live in `fairy-data/reactions.json`, where the owner can change them. This file only
- * writes a first version.
+ * They are personality, so each character has her own file in `fairy-data/reactions/`, where the owner can change
+ * them. This file only writes a first version. `{name}` in a line becomes the character's name.
  */
 
-const REACTIONS_FILE = join(FAIRY_DATA_DIR, 'reactions.json')
+const REACTIONS_DIR = join(FAIRY_DATA_DIR, 'reactions')
 
 const lines = optional(array(string()))
 const reactionsSchema = object({
@@ -40,29 +40,52 @@ const FIRST_REACTIONS: Reactions = {
   dance: ['♪ ♫', 'Ooh, this one\'s good!'],
   prankHide: ['You can\'t see me~', 'Hide and seek! You\'re it!'],
   prankTug: ['Hehe, your mouse is mine now.', 'Mine!'],
-  prankPopup: ['⚠ Lumi has taken over this PC. All your snacks belong to me now… just kidding 😜', '⚠ System update: your PC is now 100% more fairy. Just kidding 😜'],
+  prankPopup: ['⚠ {name} has taken over this PC. All your snacks belong to me now… just kidding 😜', '⚠ System update: your PC is now 100% more {name}. Just kidding 😜'],
   prankDoodle: ['Art! 🎨', 'You\'re welcome.'],
-  prankNote: ['Lumi was here ✨', 'I licked this screen. Just kidding. Maybe.', 'Drink some water, you goblin 💧'],
+  prankNote: ['{name} was here ✨', 'I licked this screen. Just kidding. Maybe.', 'Drink some water 💧'],
 }
 
-let cached: Reactions | undefined
+/** The character on the stage now, as the main window last said. */
+let activeCharacter = ''
 
-export async function loadReactions(): Promise<Reactions> {
-  if (cached)
-    return cached
-  if (!existsSync(REACTIONS_FILE)) {
-    await mkdir(FAIRY_DATA_DIR, { recursive: true })
-    await writeFile(REACTIONS_FILE, `${JSON.stringify(FIRST_REACTIONS, null, 2)}\n`)
-    cached = FIRST_REACTIONS
-    return cached
+export function setActiveCharacter(name: string) {
+  activeCharacter = name.trim()
+}
+
+/**
+ * The file name of a character's reactions.
+ *
+ * @example
+ * reactionsFileFor('Mr. Sparkles') // => 'mr-sparkles.json'
+ */
+export function reactionsFileFor(character: string) {
+  const name = character.toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
+  return `${name || 'default'}.json`
+}
+
+/**
+ * The reactions of the active character. The file is read each time, so the owner's changes count at once.
+ * A character without a file gets the first version.
+ */
+export async function loadReactions(character = activeCharacter): Promise<Reactions> {
+  const file = join(REACTIONS_DIR, reactionsFileFor(character))
+  if (!existsSync(file)) {
+    await mkdir(REACTIONS_DIR, { recursive: true })
+    await writeFile(file, `${JSON.stringify(FIRST_REACTIONS, null, 2)}\n`)
+    return withName(FIRST_REACTIONS, character)
   }
-  const saved = parse(reactionsSchema, JSON.parse(await readFile(REACTIONS_FILE, 'utf8')))
+  const saved = parse(reactionsSchema, JSON.parse(await readFile(file, 'utf8')))
   // Kinds that came in a later version get their first lines. The owner's own lines stay as they are.
   const missing = Object.keys(FIRST_REACTIONS).filter(kind => saved[kind as ReactionKind] === undefined)
-  cached = Object.fromEntries(Object.entries(FIRST_REACTIONS).map(([kind, first]) => [kind, saved[kind as ReactionKind] ?? first])) as Reactions
+  const reactions = Object.fromEntries(Object.entries(FIRST_REACTIONS).map(([kind, first]) => [kind, saved[kind as ReactionKind] ?? first])) as Reactions
   if (missing.length)
-    await writeFile(REACTIONS_FILE, `${JSON.stringify(cached, null, 2)}\n`)
-  return cached
+    await writeFile(file, `${JSON.stringify(reactions, null, 2)}\n`)
+  return withName(reactions, character)
+}
+
+function withName(reactions: Reactions, character: string): Reactions {
+  const name = character || 'your fairy'
+  return Object.fromEntries(Object.entries(reactions).map(([kind, options]) => [kind, options.map(line => line.replaceAll('{name}', name))])) as Reactions
 }
 
 /** One random line of a kind, or nothing when the owner left the kind empty. */

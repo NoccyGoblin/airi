@@ -6,17 +6,18 @@ import type { Flight, Sample } from './fling'
 import type { ReactionKind } from './reactions'
 
 import { useLogg } from '@guiiai/logg'
+import { defineInvokeHandler } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
 import { app, powerMonitor, screen } from 'electron'
 
-import { electronAvatarState } from '../../../../shared/eventa'
+import { electronActiveCharacter, electronAvatarState } from '../../../../shared/eventa'
 import { bubbleSay } from '../activity-bubble'
 import { PowerShellHost } from '../pc-actions/powershell-host'
 import { setWanderPaused } from '../wander'
 import { flightDuration, flightPoint } from '../wander/path'
 import { mediaLevel, METER_SCRIPT, parsePeaks } from './audio-meter'
 import { flingStep, MIN_THROW_SPEED, releaseSpeed, speedOf, STOP_SPEED } from './fling'
-import { loadReactions, pickLine } from './reactions'
+import { loadReactions, pickLine, setActiveCharacter } from './reactions'
 
 /**
  * FAIRY: little bits of life on the desktop.
@@ -27,7 +28,7 @@ import { loadReactions, pickLine } from './reactions'
  * - Dancing: while a music or video app plays sound, she sways and hops in place. Calls, games, and her own voice do
  *   not count.
  *
- * Each one sends an avatar state, so her model can act it out, and says a line from `fairy-data/reactions.json`.
+ * Each one sends an avatar state, so her model can act it out, and says a line from her file in `fairy-data/reactions/`.
  */
 
 const log = useLogg('fairy-desktop-life').useGlobalConfig()
@@ -67,6 +68,8 @@ export function createDesktopLifeService(params: { context: ReturnType<typeof cr
   let musicSince = 0
   let quietSince = 0
   let dance: { center: { x: number, y: number }, timer: ReturnType<typeof setInterval>, startedAt: number } | undefined
+
+  defineInvokeHandler(params.context, electronActiveCharacter, ({ name }) => setActiveCharacter(name))
 
   function sendState(state: AvatarState) {
     params.context.emit(electronAvatarState, { state })

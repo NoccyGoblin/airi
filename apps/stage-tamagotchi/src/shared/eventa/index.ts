@@ -370,6 +370,8 @@ export const electronReadDroppedFile = defineInvokeEventa<{ data: string, size: 
  */
 export type AvatarState = 'thrown' | 'landed' | 'sleeping' | 'awake' | 'dancing' | 'still' | 'mischief'
 export const electronAvatarState = defineEventa<{ state: AvatarState }>('eventa:event:electron:fairy:avatar-state')
+/** FAIRY: the main window tells which character is on the stage, so her desktop reactions are her own. */
+export const electronActiveCharacter = defineInvokeEventa<void, { name: string }>('eventa:invoke:electron:fairy:active-character')
 
 /** FAIRY: opens a mini game with the character next to her window. */
 export const electronPlayGame = defineInvokeEventa<void, { game: 'tic-tac-toe' | 'rock-paper-scissors', character: string, near?: { x: number, y: number, width: number, height: number } }>('eventa:invoke:electron:fairy:play-game')

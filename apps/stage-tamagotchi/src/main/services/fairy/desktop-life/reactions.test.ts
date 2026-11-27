@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { pickLine } from './reactions'
+import { pickLine, reactionsFileFor } from './reactions'
 
 vi.mock('../memory-files', () => ({ FAIRY_DATA_DIR: '/home/user/fairy-data' }))
 
@@ -13,5 +13,13 @@ describe('pickLine', () => {
 
   it('stays quiet for an empty kind', () => {
     expect(pickLine(reactions, 'bounce')).toBeUndefined()
+  })
+})
+
+describe('reactionsFileFor', () => {
+  it('names the file after the character', () => {
+    expect(reactionsFileFor('Lumi')).toBe('lumi.json')
+    expect(reactionsFileFor('Mr. Sparkles ✨')).toBe('mr-sparkles.json')
+    expect(reactionsFileFor('')).toBe('default.json')
   })
 })
