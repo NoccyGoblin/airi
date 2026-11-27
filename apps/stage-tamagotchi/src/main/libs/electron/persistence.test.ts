@@ -41,22 +41,8 @@ describe('createConfig', () => {
       }
       existingTempFiles.delete(from)
     })
-    const writeCoordinator = {
-      calls: 0,
-      waitFor: Promise.resolve(),
-      release: () => {},
-    }
     const writeFileMock = vi.fn(async (path: string) => {
       existingTempFiles.add(path)
-      writeCoordinator.calls += 1
-      if (writeCoordinator.calls === 2) {
-        writeCoordinator.release()
-      }
-      await writeCoordinator.waitFor
-    })
-
-    writeCoordinator.waitFor = new Promise<void>((resolve) => {
-      writeCoordinator.release = resolve
     })
 
     vi.doMock('electron', () => ({
@@ -98,6 +84,59 @@ describe('createConfig', () => {
     expect(saveErrorSpy).not.toHaveBeenCalledWith('Failed to save config', expect.anything())
     expect(new Set(renameMock.mock.calls.map(([from]) => from)).size).toBe(2)
     saveErrorSpy.mockRestore()
+  })
+
+  // ROOT CAUSE:
+  //
+  // Each move of a window saved the config, and the saves ran at the same time. On Windows, a rename onto a file
+  // that another rename is still replacing fails with EPERM. When the newest save failed, the file kept an older
+  // window position.
+  //
+  // Saves now run one at a time, and the last one writes the newest value.
+  it('runs one save at a time, and the last save writes the newest value', async () => {
+    const files = new Map<string, string>()
+    let renaming = false
+    let overlapped = false
+
+    vi.doMock('electron', () => ({
+      app: { getPath: vi.fn(() => join(tmpdir(), 'airi-user-data')) },
+    }))
+    vi.doMock('es-toolkit', () => ({
+      throttle: (handler: (...args: unknown[]) => unknown) => handler,
+    }))
+    vi.doMock('node:fs', () => ({
+      existsSync: () => false,
+      readFileSync: () => '',
+    }))
+    vi.doMock('node:fs/promises', () => ({
+      copyFile: vi.fn(async () => {}),
+      mkdir: vi.fn(async () => {}),
+      writeFile: vi.fn(async (path: string, body: string) => {
+        files.set(path, body)
+      }),
+      rename: vi.fn(async (from: string, to: string) => {
+        if (renaming)
+          overlapped = true
+        renaming = true
+        await new Promise(resolve => setTimeout(resolve, 5))
+        files.set(to, files.get(from) ?? '')
+        files.delete(from)
+        renaming = false
+      }),
+    }))
+
+    const { createConfig } = await import('./persistence')
+    const config = createConfig('windows-main', 'config.json', object({ value: number() }), { default: { value: 0 } })
+    config.setup()
+    for (let value = 1; value <= 5; value++)
+      config.update({ value })
+
+    const path = join(tmpdir(), 'airi-user-data', 'windows-main-config.json')
+    await vi.waitFor(() => {
+      expect(files.get(path)).toBe(JSON.stringify({ value: 5 }))
+      expect(renaming).toBe(false)
+    })
+    expect(overlapped).toBe(false)
   })
 
   // https://github.com/moeru-ai/airi/actions/runs/38099469838/job/114352217426

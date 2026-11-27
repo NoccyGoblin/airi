@@ -96,7 +96,11 @@ export function createConfig<TSchema extends PersistedSchema>(
     return diagnostics
   }
 
-  const save = throttle(async () => {
+  // Saves run one at a time. On Windows, a rename onto a file that another rename is still replacing fails with
+  // EPERM. When the newest save was the one that failed, the file kept an older value, for example an old window
+  // position after a window glided across the screen.
+  let saving = Promise.resolve()
+  const writeNow = async () => {
     try {
       const path = configPath()
       await ensureConfigDirectory(path)
@@ -116,6 +120,10 @@ export function createConfig<TSchema extends PersistedSchema>(
     catch (error) {
       console.error('Failed to save config', error)
     }
+  }
+  const save = throttle(() => {
+    saving = saving.then(writeNow)
+    return saving
   }, 250)
 
   const writeHealingConfig = async (value: InferOutput<TSchema>) => {
