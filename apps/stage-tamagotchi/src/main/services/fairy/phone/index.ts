@@ -1,6 +1,6 @@
 import type { createContext } from '@moeru/eventa/adapters/electron/main'
 
-import type { PhoneChatReply, PhoneChatRequest } from '../../../../shared/eventa'
+import type { FairyMode, PhoneCard, PhoneChatReply, PhoneChatRequest } from '../../../../shared/eventa'
 
 import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
@@ -14,9 +14,10 @@ import { useLogg } from '@guiiai/logg'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { eventHandler, H3 } from 'h3'
 
-import { electronPhoneChatReply, electronPhoneChatRequest, electronPhoneInfo, electronPhoneNotify } from '../../../../shared/eventa'
+import { electronPhoneChatReply, electronPhoneChatRequest, electronPhoneInfo, electronPhoneNotify, FAIRY_MODES } from '../../../../shared/eventa'
 import { createH3Server } from '../../airi/http-server/server'
 import { FAIRY_DATA_DIR } from '../memory-files'
+import { readModes, setMode } from '../modes'
 import { PHONE_ICON_SVG, PHONE_MANIFEST, PHONE_PAGE_HTML, PHONE_SERVICE_WORKER } from './page'
 import { addPushSubscription, pushPublicKey, sendPhoneNotification } from './push'
 
@@ -160,6 +161,92 @@ export function startPhoneServer() {
         return json({ ok: false, error: 'Bad request' }, 400)
       const reply = await askMainWindow({ kind: 'switch', characterId: body.id.slice(0, 200) })
       return reply.ok ? json({ ok: true, character: reply.character, characterId: reply.characterId }) : json({ ok: false, error: reply.error }, 503)
+    }))
+
+    // -- The app's chat list, character card, and controls --
+    const paired = (event: { req: Request }) => keyMatches(event.req.headers.get('x-fairy-key'), key)
+    const readBody = async (event: { req: Request }, limit: number): Promise<Record<string, unknown> | undefined> => {
+      try {
+        const body = JSON.parse((await event.req.text()).slice(0, limit))
+        return body && typeof body === 'object' ? body : undefined
+      }
+      catch {
+        return undefined
+      }
+    }
+    const answer = (reply: PhoneChatReply, data: Record<string, unknown>) =>
+      reply.ok ? json({ ok: true, character: reply.character, characterId: reply.characterId, ...data }) : json({ ok: false, error: reply.error }, 503)
+
+    app.get('/api/chats', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const reply = await askMainWindow({ kind: 'chats' })
+      return answer(reply, { chats: reply.chats ?? [] })
+    }))
+
+    app.post('/api/open-chat', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const body = await readBody(event, 1000)
+      if (typeof body?.id !== 'string' || !body.id)
+        return json({ ok: false, error: 'Bad request' }, 400)
+      const reply = await askMainWindow({ kind: 'open-chat', sessionId: body.id.slice(0, 200) })
+      return answer(reply, { sessionId: reply.sessionId })
+    }))
+
+    app.post('/api/new-chat', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const reply = await askMainWindow({ kind: 'new-chat' })
+      return answer(reply, { sessionId: reply.sessionId })
+    }))
+
+    app.get('/api/card', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const reply = await askMainWindow({ kind: 'card' })
+      return answer(reply, { card: reply.card })
+    }))
+
+    app.post('/api/card', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const body = await readBody(event, 100_000)
+      if (!body)
+        return json({ ok: false, error: 'Bad request' }, 400)
+      const card: Partial<PhoneCard> = {}
+      for (const field of ['description', 'personality', 'scenario'] as const) {
+        if (typeof body[field] === 'string')
+          card[field] = body[field]
+      }
+      const reply = await askMainWindow({ kind: 'save-card', card })
+      return answer(reply, { card: reply.card })
+    }))
+
+    async function controls() {
+      const look = await askMainWindow({ kind: 'look' })
+      return { ok: true, modes: readModes(), sprite: look.ok ? look.sprite : undefined }
+    }
+
+    app.get('/api/controls', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      return json(await controls())
+    }))
+
+    app.post('/api/controls', eventHandler(async (event) => {
+      if (!paired(event))
+        return json({ ok: false, error: 'Not paired' }, 401)
+      const body = await readBody(event, 1000)
+      if (typeof body?.mode !== 'string' || typeof body.on !== 'boolean')
+        return json({ ok: false, error: 'Bad request' }, 400)
+      if (body.mode === 'sprite')
+        await askMainWindow({ kind: 'look', sprite: body.on })
+      else if ((FAIRY_MODES as readonly string[]).includes(body.mode))
+        await setMode(body.mode as FairyMode, body.on)
+      else
+        return json({ ok: false, error: 'Bad request' }, 400)
+      return json(await controls())
     }))
 
     app.post('/api/send', eventHandler(async (event) => {

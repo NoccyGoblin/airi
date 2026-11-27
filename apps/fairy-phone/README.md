@@ -5,7 +5,8 @@ the PC serves on the Tailscale network, so the phone and the PC share one charac
 
 ## What it does
 
-- Shows the phone page: chat, photos, and voice messages.
+- Shows the phone page as an app: the chat with photos and voice messages, the list of chats, the character's card to
+  edit her personality, and switches for her modes.
 - Can be the phone's **digital assistant**, in place of Google's. A long press of the side button then opens the
   character, and she listens at once. Recording stops after a short silence.
 - Takes shares from other apps: a link, some text, or a picture goes to the character, who reacts to it.

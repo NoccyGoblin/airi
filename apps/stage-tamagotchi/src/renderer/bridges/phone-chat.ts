@@ -1,8 +1,9 @@
 import type { createContext } from '@moeru/eventa/adapters/electron/renderer'
 import type { PcmBlock } from '@proj-airi/pipelines-audio'
 import type { ChatHistoryItem } from '@proj-airi/stage-ui/types/chat'
+import type { ChatSessionMeta } from '@proj-airi/stage-ui/types/chat-session'
 
-import type { PhoneChatReply, PhoneChatRequest } from '../../shared/eventa'
+import type { PhoneChatReply, PhoneChatRequest, PhoneChatRow } from '../../shared/eventa'
 
 import { defineInvoke } from '@moeru/eventa'
 import { errorMessageFrom } from '@moeru/std'
@@ -14,6 +15,7 @@ import { useHearingStore } from '@proj-airi/stage-ui/stores/modules/hearing'
 import { useSpeechStore } from '@proj-airi/stage-ui/stores/modules/speech'
 
 import { electronPhoneChatReply, electronPhoneChatRequest } from '../../shared/eventa'
+import { useAvatarStyle } from '../stores/avatar-style'
 import { artistryToolReferences } from '../stores/tools'
 
 type RendererContext = ReturnType<typeof createContext>['context']
@@ -99,6 +101,31 @@ async function toDataUrl(audio: Blob) {
   return `data:${audioType(bytes)};base64,${btoa(binary)}`
 }
 
+/** A card field from the phone stays below this length, so a slip of the thumb cannot paste a book into her prompt. */
+const CARD_FIELD_LENGTH = 20_000
+
+/** A chat that the owner talks in: not Discord's, not a background task, not hidden or archived. */
+function isOwnerChat(meta: ChatSessionMeta | undefined, characterId: string) {
+  return !!meta && meta.characterId === characterId && !meta.hidden && !meta.archivedAt && !meta.recipeId && !meta.task && !meta.bindings?.length
+}
+
+/** The chats of the active character for the phone's chat list: pinned first, then the newest. */
+function chatRows(activeSessionId: string): PhoneChatRow[] {
+  const characterId = useAiriCardStore().activeCardId
+  return Object.values(useChatSessionStore().sessionMetas)
+    .filter(meta => isOwnerChat(meta, characterId))
+    .sort((a, b) => (b.pinnedAt ?? 0) - (a.pinnedAt ?? 0) || (b.summary?.lastAt ?? b.updatedAt) - (a.summary?.lastAt ?? a.updatedAt))
+    .slice(0, 50)
+    .map(meta => ({
+      id: meta.sessionId,
+      title: meta.title || meta.summary?.firstText?.slice(0, 60) || 'New chat',
+      lastText: meta.summary?.lastText?.slice(0, 120),
+      lastFromUser: meta.summary?.lastFromUser,
+      lastAt: meta.summary?.lastAt ?? meta.updatedAt,
+      active: meta.sessionId === activeSessionId,
+    }))
+}
+
 /** The character of a session, for the phone page. */
 function characterOf(sessionId: string): { character?: string, characterId?: string } {
   const [characterId] = useChatSessionStore().characterMembersOf(sessionId)
@@ -173,6 +200,51 @@ export function setupPhoneChatBridge(context: RendererContext) {
         const next = await sessions.ensureCharacterSession(request.characterId)
         sessions.activeSessionId = next
         await send({ id: request.id, ok: true }, next)
+        return
+      }
+      if (request.kind === 'chats') {
+        await send({ id: request.id, ok: true, chats: chatRows(sessionId) }, sessionId)
+        return
+      }
+      if (request.kind === 'open-chat' || request.kind === 'new-chat') {
+        // The same as picking a chat on the PC: the phone and the PC show one chat.
+        const characterId = useAiriCardStore().activeCardId
+        const next = request.kind === 'new-chat'
+          ? await sessions.createSession(characterId, { setActive: true })
+          : request.sessionId
+        if (!next || !isOwnerChat(sessions.sessionMetas[next], characterId)) {
+          await send({ id: request.id, ok: false, error: 'That chat is not there.' }, sessionId)
+          return
+        }
+        await sessions.setActiveSession(next)
+        await send({ id: request.id, ok: true, sessionId: next }, next)
+        return
+      }
+      if (request.kind === 'card' || request.kind === 'save-card') {
+        const cards = useAiriCardStore()
+        const card = cards.getCard(cards.activeCardId)
+        if (!card) {
+          await send({ id: request.id, ok: false, error: 'No character is active.' }, sessionId)
+          return
+        }
+        if (request.kind === 'save-card' && request.card) {
+          const { description, personality, scenario } = request.card
+          await cards.updateCard(cards.activeCardId, {
+            ...card,
+            ...(typeof description === 'string' ? { description: description.slice(0, CARD_FIELD_LENGTH) } : {}),
+            ...(typeof personality === 'string' ? { personality: personality.slice(0, CARD_FIELD_LENGTH) } : {}),
+            ...(typeof scenario === 'string' ? { scenario: scenario.slice(0, CARD_FIELD_LENGTH) } : {}),
+          })
+        }
+        const saved = cards.getCard(cards.activeCardId) ?? card
+        await send({ id: request.id, ok: true, card: { id: cards.activeCardId, name: saved.name, description: saved.description ?? '', personality: saved.personality ?? '', scenario: saved.scenario ?? '' } }, sessionId)
+        return
+      }
+      if (request.kind === 'look') {
+        const style = useAvatarStyle()
+        if (request.sprite !== undefined)
+          style.value = request.sprite ? 'sprite' : 'live2d'
+        await send({ id: request.id, ok: true, sprite: style.value === 'sprite' }, sessionId)
         return
       }
       if (request.kind === 'history') {

@@ -252,7 +252,13 @@ export const electronMemoryFilesChanged = defineEventa('eventa:event:electron:fa
 /** FAIRY: a message from the phone page, which the main window answers with `electronPhoneChatReply`. */
 export interface PhoneChatRequest {
   id: string
-  kind: 'send' | 'history' | 'characters' | 'switch'
+  kind: 'send' | 'history' | 'characters' | 'switch' | 'chats' | 'open-chat' | 'new-chat' | 'card' | 'save-card' | 'look'
+  /** For `open-chat`: the chat to make active, on the PC and the phone. */
+  sessionId?: string
+  /** For `save-card`: the new text of the active character's card. Missing fields stay as they are. */
+  card?: Partial<PhoneCard>
+  /** For `look`: the avatar style to switch to. Without it, `look` only reads it. */
+  sprite?: boolean
   /** For `switch`: the character card to make active, on the PC and the phone. */
   characterId?: string
   text?: string
@@ -278,7 +284,32 @@ export interface PhoneChatReply {
   characterId?: string
   /** For `characters`: every character the owner can switch to. */
   characters?: { id: string, name: string }[]
+  /** For `chats`: the chats of the active character, newest first. */
+  chats?: PhoneChatRow[]
+  /** For `new-chat` and `open-chat`: the chat that is active now. */
+  sessionId?: string
+  /** For `card` and `save-card`: the active character's card. */
+  card?: PhoneCard
+  /** For `look`: whether the sprite avatar shows instead of the Live2D model. */
+  sprite?: boolean
   error?: string
+}
+/** FAIRY: one chat in the phone's chat list. */
+export interface PhoneChatRow {
+  id: string
+  title: string
+  lastText?: string
+  lastFromUser?: boolean
+  lastAt?: number
+  active: boolean
+}
+/** FAIRY: the parts of a character card that the phone can edit. Together they make her personality. */
+export interface PhoneCard {
+  id: string
+  name: string
+  description: string
+  personality: string
+  scenario: string
 }
 export const electronPhoneChatRequest = defineEventa<PhoneChatRequest>('eventa:event:electron:fairy:phone:request')
 export const electronPhoneChatReply = defineInvokeEventa<void, PhoneChatReply>('eventa:invoke:electron:fairy:phone:reply')
@@ -395,7 +426,8 @@ export const electronGameBuddyNotice = defineEventa<{ text: string }>('eventa:ev
 /** FAIRY: turns smart spot on or off, or forgets the spots the owner picked. `apps` names the apps with a picked spot. */
 export const electronSmartSpot = defineInvokeEventa<{ enabled: boolean, apps: string[] }, { enabled?: boolean, forget?: boolean } | undefined>('eventa:invoke:electron:fairy:smart-spot')
 /** FAIRY: the modes that the quick menu switches. */
-export type FairyMode = 'wander' | 'mischief' | 'gameBuddy' | 'gameComments' | 'smartSpot'
+export const FAIRY_MODES = ['wander', 'mischief', 'gameBuddy', 'gameComments', 'smartSpot'] as const
+export type FairyMode = typeof FAIRY_MODES[number]
 /** FAIRY: reads the modes, and switches one first when the request names it. */
 export const electronFairyModes = defineInvokeEventa<Partial<Record<FairyMode, boolean>>, { mode: FairyMode, on: boolean } | undefined>('eventa:invoke:electron:fairy:modes')
 export const electronMischief = defineInvokeEventa<{ enabled: boolean, played?: string }, { enabled?: boolean, prankNow?: boolean, character: string }>('eventa:invoke:electron:fairy:mischief')
