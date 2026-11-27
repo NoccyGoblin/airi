@@ -11,6 +11,7 @@ import { fileTools, FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL
 import { imageJournalTools } from './builtin/image-journal'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME, leagueTools } from './builtin/league'
 import { miniGameTools, PLAY_GAME_TOOL_NAME } from './builtin/mini-games'
+import { MISCHIEF_MODE_TOOL_NAME, mischiefTools } from './builtin/mischief'
 import { CIRCLE_ON_SCREEN_TOOL_NAME, CLICK_ELEMENT_TOOL_NAME, CLICK_ON_TOOL_NAME, CLOSE_APP_TOOL_NAME, DESCRIBE_SCREEN_TOOL_NAME, DISCORD_MESSAGE_TOOL_NAME, DOODLE_TOOL_NAME, MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, pcActionTools, PLAY_YOUTUBE_TOOL_NAME, PRESS_KEYS_TOOL_NAME, READ_APP_TOOL_NAME, SCROLL_TOOL_NAME, TYPE_TEXT_TOOL_NAME, WANDER_MODE_TOOL_NAME } from './builtin/pc-actions'
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, reminderTools, SET_REMINDER_TOOL_NAME } from './builtin/reminders'
 import { CREATE_ROUTINE_TOOL_NAME, DELETE_ROUTINE_TOOL_NAME, LIST_ROUTINES_TOOL_NAME, PAUSE_ROUTINE_TOOL_NAME, routineTools } from './builtin/routines'
@@ -32,6 +33,8 @@ export const widgetToolReferences = [
   { name: STICKY_NOTE_TOOL_NAME },
   // FAIRY: mini games with her.
   { name: PLAY_GAME_TOOL_NAME },
+  // FAIRY: mischief mode.
+  { name: MISCHIEF_MODE_TOOL_NAME },
   { name: 'stage_widgets' },
   { name: 'get_weather' },
   // FAIRY: League facts from Riot's data, offered with every chat and voice message.
@@ -114,6 +117,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       watchTools().then(tools => ({ tools, icon: TOOL_ICONS.timer })),
       stickyNoteTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
       miniGameTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
+      mischiefTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

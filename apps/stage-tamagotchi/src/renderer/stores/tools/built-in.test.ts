@@ -69,6 +69,10 @@ vi.mock('./builtin/watch', () => ({
   STOP_WATCHING_TOOL_NAME: 'stop_watching',
   watchTools: vi.fn(async () => ['watch_for', 'list_watches', 'stop_watching'].map(executableTool)),
 }))
+vi.mock('./builtin/mischief', () => ({
+  MISCHIEF_MODE_TOOL_NAME: 'mischief_mode',
+  mischiefTools: vi.fn(async () => [executableTool('mischief_mode')]),
+}))
 vi.mock('./builtin/mini-games', () => ({
   PLAY_GAME_TOOL_NAME: 'play_game',
   miniGameTools: vi.fn(async () => [executableTool('play_game')]),
@@ -168,6 +172,7 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:stop_watching', defaultActive: false },
       { id: 'tamagotchi:sticky_note', defaultActive: false },
       { id: 'tamagotchi:play_game', defaultActive: false },
+      { id: 'tamagotchi:mischief_mode', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')

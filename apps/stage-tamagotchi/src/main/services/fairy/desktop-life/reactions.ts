@@ -14,7 +14,7 @@ import { FAIRY_DATA_DIR } from '../memory-files'
 
 const REACTIONS_FILE = join(FAIRY_DATA_DIR, 'reactions.json')
 
-const lines = optional(array(string()), [])
+const lines = optional(array(string()))
 const reactionsSchema = object({
   thrown: lines,
   bounce: lines,
@@ -22,6 +22,11 @@ const reactionsSchema = object({
   sleep: lines,
   wake: lines,
   dance: lines,
+  prankHide: lines,
+  prankTug: lines,
+  prankPopup: lines,
+  prankDoodle: lines,
+  prankNote: lines,
 })
 export type Reactions = Record<keyof typeof reactionsSchema.entries, string[]>
 export type ReactionKind = keyof Reactions
@@ -33,6 +38,11 @@ const FIRST_REACTIONS: Reactions = {
   sleep: ['💤 zzz…'],
   wake: ['*yawn* Oh, you\'re back!', 'Mmh… I wasn\'t sleeping!'],
   dance: ['♪ ♫', 'Ooh, this one\'s good!'],
+  prankHide: ['You can\'t see me~', 'Hide and seek! You\'re it!'],
+  prankTug: ['Hehe, your mouse is mine now.', 'Mine!'],
+  prankPopup: ['⚠ Lumi has taken over this PC. All your snacks belong to me now… just kidding 😜', '⚠ System update: your PC is now 100% more fairy. Just kidding 😜'],
+  prankDoodle: ['Art! 🎨', 'You\'re welcome.'],
+  prankNote: ['Lumi was here ✨', 'I licked this screen. Just kidding. Maybe.', 'Drink some water, you goblin 💧'],
 }
 
 let cached: Reactions | undefined
@@ -46,7 +56,12 @@ export async function loadReactions(): Promise<Reactions> {
     cached = FIRST_REACTIONS
     return cached
   }
-  cached = parse(reactionsSchema, JSON.parse(await readFile(REACTIONS_FILE, 'utf8')))
+  const saved = parse(reactionsSchema, JSON.parse(await readFile(REACTIONS_FILE, 'utf8')))
+  // Kinds that came in a later version get their first lines. The owner's own lines stay as they are.
+  const missing = Object.keys(FIRST_REACTIONS).filter(kind => saved[kind as ReactionKind] === undefined)
+  cached = Object.fromEntries(Object.entries(FIRST_REACTIONS).map(([kind, first]) => [kind, saved[kind as ReactionKind] ?? first])) as Reactions
+  if (missing.length)
+    await writeFile(REACTIONS_FILE, `${JSON.stringify(cached, null, 2)}\n`)
   return cached
 }
 

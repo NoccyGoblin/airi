@@ -20,6 +20,7 @@ export const AVATAR_STATE_MOTIONS: Record<AvatarState, string> = {
   awake: EmotionHappyMotionName,
   dancing: EmotionHappyMotionName,
   still: EmotionNeutralMotionName,
+  mischief: EmotionHappyMotionName,
 }
 
 /** FAIRY: acts out what happens to the character on the desktop. Only the main window shows her model. */

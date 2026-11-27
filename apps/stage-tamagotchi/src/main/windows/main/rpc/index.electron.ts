@@ -48,6 +48,7 @@ import { createFileDropService } from '../../../services/fairy/file-drop'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createMiniGamesService } from '../../../services/fairy/mini-games'
+import { createMischiefService } from '../../../services/fairy/mischief'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { createRoutineScheduler } from '../../../services/fairy/routines'
 import { createStickyNotesService } from '../../../services/fairy/sticky-notes'
@@ -119,6 +120,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createStickyNotesService({ context }))
   // FAIRY: mini games with her.
   onWindowClosed(params.window, createMiniGamesService({ context }))
+  // FAIRY: mischief mode, small pranks when the owner turns it on.
+  onWindowClosed(params.window, createMischiefService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

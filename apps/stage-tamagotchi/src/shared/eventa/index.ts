@@ -362,13 +362,16 @@ export const electronReadDroppedFile = defineInvokeEventa<{ data: string, size: 
  * FAIRY: what happens to the character on the desktop, so her model can act it out. The current model plays a
  * fitting emotion. A future model can have its own animation for each state.
  */
-export type AvatarState = 'thrown' | 'landed' | 'sleeping' | 'awake' | 'dancing' | 'still'
+export type AvatarState = 'thrown' | 'landed' | 'sleeping' | 'awake' | 'dancing' | 'still' | 'mischief'
 export const electronAvatarState = defineEventa<{ state: AvatarState }>('eventa:event:electron:fairy:avatar-state')
 
 /** FAIRY: opens a mini game with the character next to her window. */
 export const electronPlayGame = defineInvokeEventa<void, { game: 'tic-tac-toe' | 'rock-paper-scissors', character: string, near?: { x: number, y: number, width: number, height: number } }>('eventa:invoke:electron:fairy:play-game')
 /** FAIRY: a mini game ended. `result` is seen from the character. A best-of-three game also gives the score. */
 export const electronGameOver = defineEventa<{ game: 'tic-tac-toe' | 'rock-paper-scissors', result: 'won' | 'lost' | 'draw', score?: { her: number, owner: number } }>('eventa:event:electron:fairy:game-over')
+
+/** FAIRY: turns mischief mode on or off, or plays one prank now. `played` names the prank. */
+export const electronMischief = defineInvokeEventa<{ enabled: boolean, played?: string }, { enabled?: boolean, prankNow?: boolean, character: string }>('eventa:invoke:electron:fairy:mischief')
 
 /** FAIRY: puts a sticky note on the owner's screen. `by` signs it with the character's name. */
 export const electronStickyNote = defineInvokeEventa<{ count: number }, { text: string, by: string }>('eventa:invoke:electron:fairy:sticky-note')

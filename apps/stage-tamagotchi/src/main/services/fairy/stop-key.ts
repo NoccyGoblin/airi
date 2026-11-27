@@ -15,6 +15,13 @@ import { stopPcActions } from './pc-actions'
 const STOP_KEY = 'Escape'
 const log = useLogg('fairy-stop-key').useGlobalConfig()
 
+/** Whether the character thinks, works, or talks right now, as the main window last said. */
+let characterBusy = false
+
+export function isCharacterBusy() {
+  return characterBusy
+}
+
 export function createStopKeyService(params: { context: ReturnType<typeof createContext>['context'] }) {
   let armed = false
 
@@ -26,6 +33,7 @@ export function createStopKeyService(params: { context: ReturnType<typeof create
   }
 
   defineInvokeHandler(params.context, electronStopKeyArmed, ({ armed: wanted }) => {
+    characterBusy = wanted
     if (!wanted) {
       disarm()
       return

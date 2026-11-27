@@ -7,6 +7,7 @@ import { BROWSER_BACK_TOOL_NAME, BROWSER_CLICK_TOOL_NAME, BROWSER_CLOSE_TOOL_NAM
 import { FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './files'
 import { LEAGUE_LIVE_GAME_TOOL_NAME, LEAGUE_LOOKUP_TOOL_NAME } from './league'
 import { PLAY_GAME_TOOL_NAME } from './mini-games'
+import { MISCHIEF_MODE_TOOL_NAME } from './mischief'
 import { CIRCLE_ON_SCREEN_TOOL_NAME, CLICK_ELEMENT_TOOL_NAME, CLICK_ON_TOOL_NAME, CLOSE_APP_TOOL_NAME, DESCRIBE_SCREEN_TOOL_NAME, DISCORD_MESSAGE_TOOL_NAME, DOODLE_TOOL_NAME, MEDIA_CONTROL_TOOL_NAME, OPEN_APP_TOOL_NAME, OPEN_WEBSITE_TOOL_NAME, PLAY_YOUTUBE_TOOL_NAME, PRESS_KEYS_TOOL_NAME, READ_APP_TOOL_NAME, SCROLL_TOOL_NAME, TYPE_TEXT_TOOL_NAME, WANDER_MODE_TOOL_NAME } from './pc-actions'
 import { CANCEL_REMINDER_TOOL_NAME, LIST_REMINDERS_TOOL_NAME, SET_REMINDER_TOOL_NAME } from './reminders'
 import { CREATE_ROUTINE_TOOL_NAME, DELETE_ROUTINE_TOOL_NAME, LIST_ROUTINES_TOOL_NAME, PAUSE_ROUTINE_TOOL_NAME } from './routines'
@@ -48,8 +49,8 @@ export const TOOL_GROUPS = {
     tools: [WEB_SEARCH_TOOL_NAME, WIKIPEDIA_TOOL_NAME, 'get_weather', LEAGUE_LOOKUP_TOOL_NAME, LEAGUE_LIVE_GAME_TOOL_NAME],
   },
   stage: {
-    about: 'widgets on the stage, the image journal, and mini games with the owner',
-    tools: ['stage_widgets', 'image_journal', PLAY_GAME_TOOL_NAME],
+    about: 'widgets on the stage, the image journal, mini games with the owner, and mischief mode (pranks)',
+    tools: ['stage_widgets', 'image_journal', PLAY_GAME_TOOL_NAME, MISCHIEF_MODE_TOOL_NAME],
   },
 } as const
 

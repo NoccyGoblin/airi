@@ -37,6 +37,13 @@ const notesSchema = array(object({
 }))
 interface Note { id: string, text: string, by: string, x?: number, y?: number }
 
+/** Adds a note from inside the main process, for example a prank of mischief mode. The service sets it up. */
+let addNote: ((text: string, by: string) => Promise<void>) | undefined
+
+export function addStickyNote(text: string, by: string) {
+  return addNote?.(text, by) ?? Promise.resolve()
+}
+
 export function createStickyNotesService(params: { context: ReturnType<typeof createContext>['context'] }) {
   const storage = new Mutex()
   const open = new Map<string, BrowserWindow>()
@@ -84,6 +91,15 @@ export function createStickyNotesService(params: { context: ReturnType<typeof cr
     })
     window.once('ready-to-show', () => window.showInactive())
     void window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(notePage(note.text, note.by))}`)
+  }
+
+  addNote = async (text, by) => {
+    if (notes.length >= MAX_NOTES)
+      return
+    const note: Note = { id: randomUUID(), text: text.slice(0, MAX_TEXT), by: by.slice(0, 40) || 'AIRI' }
+    notes.push(note)
+    show(note)
+    await save()
   }
 
   defineInvokeHandler(params.context, electronStickyNote, async ({ text, by }) => {
