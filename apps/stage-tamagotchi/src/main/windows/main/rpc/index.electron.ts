@@ -42,6 +42,7 @@ import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
 import { createActivityBubbleService } from '../../../services/fairy/activity-bubble'
+import { createAvatarImagesService } from '../../../services/fairy/avatar-images'
 import { createDesktopLifeService } from '../../../services/fairy/desktop-life'
 import { createDiscordBotService } from '../../../services/fairy/discord'
 import { createFileDropService } from '../../../services/fairy/file-drop'
@@ -122,6 +123,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createMiniGamesService({ context }))
   // FAIRY: mischief mode, small pranks when the owner turns it on.
   onWindowClosed(params.window, createMischiefService({ context, window: params.window }))
+  // FAIRY: the images of her sprite avatar.
+  onWindowClosed(params.window, createAvatarImagesService({ context }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

@@ -6,6 +6,7 @@ import { useLlmToolsStore } from '@proj-airi/stage-ui/stores/ai/chat-llm/tools'
 import { TOOL_ICONS } from '@proj-airi/stage-ui/tools/icons'
 import { defineStore } from 'pinia'
 
+import { AVATAR_STYLE_TOOL_NAME, avatarStyleTools } from './builtin/avatar-style'
 import { BROWSER_BACK_TOOL_NAME, BROWSER_CLICK_TOOL_NAME, BROWSER_CLOSE_TOOL_NAME, BROWSER_OPEN_TOOL_NAME, BROWSER_READ_TOOL_NAME, BROWSER_SCROLL_TOOL_NAME, BROWSER_TYPE_TOOL_NAME, browserTools } from './builtin/browser'
 import { fileTools, FIND_FILES_TOOL_NAME, LIST_FOLDER_TOOL_NAME, MOVE_FILES_TOOL_NAME, OPEN_FILE_TOOL_NAME, TRASH_FILES_TOOL_NAME } from './builtin/files'
 import { imageJournalTools } from './builtin/image-journal'
@@ -35,6 +36,8 @@ export const widgetToolReferences = [
   { name: PLAY_GAME_TOOL_NAME },
   // FAIRY: mischief mode.
   { name: MISCHIEF_MODE_TOOL_NAME },
+  // FAIRY: Live2D model or sprite avatar.
+  { name: AVATAR_STYLE_TOOL_NAME },
   { name: 'stage_widgets' },
   { name: 'get_weather' },
   // FAIRY: League facts from Riot's data, offered with every chat and voice message.
@@ -118,6 +121,7 @@ export const useTamagotchiBuiltinToolsStore = defineStore('tamagotchi-builtin-to
       stickyNoteTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
       miniGameTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
       mischiefTools().then(tools => ({ tools, icon: TOOL_ICONS.game })),
+      avatarStyleTools().then(tools => ({ tools, icon: TOOL_ICONS.generic })),
     ])
 
     llmToolsStore.removeToolsByIds(...registeredToolIds())

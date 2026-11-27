@@ -34,6 +34,7 @@ import { toast } from 'vue-sonner'
 
 import FullscreenBackdrop from '../components/fullscreen/fullscreen-backdrop.vue'
 import FullscreenOverlay from '../components/fullscreen/fullscreen-overlay.vue'
+import SpriteAvatar from '../components/sprite-avatar/sprite-avatar.vue'
 import AuthStatusIsland from '../components/stage-islands/auth-status-island.vue'
 import ControlsIslandRoot from '../components/stage-islands/controls-island/controls-island-root.vue'
 import ControlsIsland from '../components/stage-islands/controls-island/index.vue'
@@ -48,6 +49,7 @@ import { provideFullscreenLayout } from '../composables/use-fullscreen-layout'
 import { usePushToTalkShortcut } from '../composables/use-push-to-talk-shortcut'
 import { useScreenAmbientLight } from '../composables/use-screen-ambient-light'
 import { stageOpaqueAttribute } from '../composables/use-stage-painted-mask'
+import { useAvatarStyle } from '../stores/avatar-style'
 import { useControlsIslandStore } from '../stores/controls-island'
 import { useFullscreenStore } from '../stores/fullscreen'
 import { useStageWindowLifecycleStore } from '../stores/stage-window-lifecycle'
@@ -60,6 +62,8 @@ const { isOutside: outsideAuthStatus } = useElectronMouseInElement(authStatusEle
 const controlsIslandRef = ref<InstanceType<typeof ControlsIsland>>()
 const controlsIslandInteractionActive = shallowRef(false)
 const widgetStageRef = ref<InstanceType<typeof WidgetStage>>()
+// FAIRY: the sprite avatar shows over the Live2D stage, which stays mounted because her voice plays through it.
+const avatarStyle = useAvatarStyle()
 // The stage canvas alpha tells the sampler which pixels of the window AIRI
 // paints, so it can read the desktop showing through behind the character.
 useScreenAmbientLight({ stageCanvas: () => widgetStageRef.value?.canvasElement() })
@@ -739,12 +743,14 @@ const cursorPosition = computed(() => ({
           v-model:state="componentStateStage"
           h-full w-full
           flex-1
+          :class="avatarStyle === 'sprite' ? 'op-0' : ''"
           :cursor-position="cursorPosition"
           :paused="stagePaused"
           @error="handleStageRenderError"
           @reset="handleStageReset"
           @select-avatar-model="openSettings({ route: '/settings/models' })"
         />
+        <SpriteAvatar v-if="avatarStyle === 'sprite'" :[stageOpaqueAttribute]="true" />
         <HoloCoupon />
         <div v-show="!fullscreenActive">
           <ControlsIslandRoot :frozen="controlsIslandInteractionActive">

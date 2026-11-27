@@ -370,6 +370,11 @@ export const electronPlayGame = defineInvokeEventa<void, { game: 'tic-tac-toe' |
 /** FAIRY: a mini game ended. `result` is seen from the character. A best-of-three game also gives the score. */
 export const electronGameOver = defineEventa<{ game: 'tic-tac-toe' | 'rock-paper-scissors', result: 'won' | 'lost' | 'draw', score?: { her: number, owner: number } }>('eventa:event:electron:fairy:game-over')
 
+/** FAIRY: the images of the sprite avatar in fairy-data/avatar, as data URLs by state name. */
+export const electronAvatarImages = defineInvokeEventa<{ images: Record<string, string>, folder: string }>('eventa:invoke:electron:fairy:avatar-images')
+/** FAIRY: a file in fairy-data/avatar changed, so the window loads the images again. */
+export const electronAvatarImagesChanged = defineEventa<void>('eventa:event:electron:fairy:avatar-images-changed')
+
 /** FAIRY: turns mischief mode on or off, or plays one prank now. `played` names the prank. */
 export const electronMischief = defineInvokeEventa<{ enabled: boolean, played?: string }, { enabled?: boolean, prankNow?: boolean, character: string }>('eventa:invoke:electron:fairy:mischief')
 
