@@ -367,8 +367,8 @@ export const electronAvatarState = defineEventa<{ state: AvatarState }>('eventa:
 
 /** FAIRY: opens a mini game with the character next to her window. */
 export const electronPlayGame = defineInvokeEventa<void, { game: 'tic-tac-toe' | 'rock-paper-scissors', character: string, near?: { x: number, y: number, width: number, height: number } }>('eventa:invoke:electron:fairy:play-game')
-/** FAIRY: a mini game ended. `result` is seen from the character. */
-export const electronGameOver = defineEventa<{ game: 'tic-tac-toe' | 'rock-paper-scissors', result: 'won' | 'lost' | 'draw', detail: string }>('eventa:event:electron:fairy:game-over')
+/** FAIRY: a mini game ended. `result` is seen from the character. A best-of-three game also gives the score. */
+export const electronGameOver = defineEventa<{ game: 'tic-tac-toe' | 'rock-paper-scissors', result: 'won' | 'lost' | 'draw', score?: { her: number, owner: number } }>('eventa:event:electron:fairy:game-over')
 
 /** FAIRY: puts a sticky note on the owner's screen. `by` signs it with the character's name. */
 export const electronStickyNote = defineInvokeEventa<{ count: number }, { text: string, by: string }>('eventa:invoke:electron:fairy:sticky-note')

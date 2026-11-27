@@ -26,8 +26,8 @@ const THINK_MS = 450
 export function createMiniGamesService(params: { context: ReturnType<typeof createContext>['context'] }) {
   let open: BrowserWindow | undefined
 
-  function finish(game: GameName, result: 'won' | 'lost' | 'draw', detail: string) {
-    params.context.emit(electronGameOver, { game, result, detail })
+  function finish(game: GameName, result: 'won' | 'lost' | 'draw', score?: { her: number, owner: number }) {
+    params.context.emit(electronGameOver, { game, result, score })
   }
 
   function start(game: GameName, characterName: string, near?: { x: number, y: number, width: number, height: number }) {
@@ -86,15 +86,15 @@ export function createMiniGamesService(params: { context: ReturnType<typeof crea
           }
           if (winner === 'X') {
             await run(`window.gameOver('You won! 🎉')`)
-            finish(game, 'lost', 'The owner got three in a row.')
+            finish(game, 'lost')
           }
           else if (winner === 'O') {
             await run(`window.gameOver('She won! 😈')`)
-            finish(game, 'won', 'You got three in a row.')
+            finish(game, 'won')
           }
           else if (winner === 'draw') {
             await run(`window.gameOver('A draw!')`)
-            finish(game, 'draw', 'Nobody got three in a row.')
+            finish(game, 'draw')
           }
         })()
         return
@@ -113,7 +113,7 @@ export function createMiniGamesService(params: { context: ReturnType<typeof crea
             return
           const ownerWon = score.you > score.her
           await run(`window.gameOver(${JSON.stringify(ownerWon ? `You won ${score.you}–${score.her}! 🎉` : `She won ${score.her}–${score.you}! 😈`)})`)
-          finish(game, ownerWon ? 'lost' : 'won', `Best of three, ${score.her}–${score.you} for ${ownerWon ? 'the owner' : 'you'}.`)
+          finish(game, ownerWon ? 'lost' : 'won', { her: score.her, owner: score.you })
         })()
       }
     })
