@@ -26,6 +26,17 @@ const SETTINGS_FILE = join(FAIRY_DATA_DIR, 'wander.json')
 const settingsSchema = object({ enabled: optional(boolean(), false) })
 const log = useLogg('fairy-wander').useGlobalConfig()
 
+/** Reasons that hold wander mode still for a while, for example a throw or a nap. */
+const pauses = new Set<string>()
+
+/** Holds wander mode still while `paused` is true for this reason. Her spot afterwards is where she is then. */
+export function setWanderPaused(reason: string, paused: boolean) {
+  if (paused)
+    pauses.add(reason)
+  else
+    pauses.delete(reason)
+}
+
 /** About 30 updates a second, smooth enough for a small window. */
 const FRAME_MS = 33
 /** She rests this long between flights, in a random time between the two. */
@@ -61,7 +72,13 @@ export function createWanderService(params: { context: ReturnType<typeof createC
 
   function place(point: Point) {
     placed = point
-    window.setPosition(point.x, point.y, false)
+    // NOTICE:
+    // Above 100% scaling on Windows, setPosition changes the window size a little on each call, so a window that
+    // moves every frame grows. setBounds with the same size keeps it. The main window glide has the same fix.
+    // Source: https://github.com/electron/electron/issues/9477
+    // Removal: Electron keeps the size of a window that setPosition moves.
+    const { width, height } = window.getBounds()
+    window.setBounds({ x: point.x, y: point.y, width, height }, false)
   }
 
   function mouseOnHer() {
@@ -74,6 +91,12 @@ export function createWanderService(params: { context: ReturnType<typeof createC
   function tick() {
     if (window.isDestroyed() || !window.isVisible())
       return
+    if (pauses.size) {
+      // Something else moves her now. Afterwards, the place she ends up is her new spot.
+      home = undefined
+      flight = undefined
+      return
+    }
     const bounds = window.getBounds()
     const now = Date.now()
     // The owner dragged her, so the new place is her spot.

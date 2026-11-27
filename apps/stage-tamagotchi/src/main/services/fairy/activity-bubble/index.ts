@@ -36,6 +36,13 @@ export function isClickThroughWindow(window: BrowserWindow) {
   return clickThroughWindows.has(window)
 }
 
+/** Shows a short line in the bubble for a moment, for example when she is thrown. The main window sets it up. */
+let sayLine: ((text: string, holdMs: number) => void) | undefined
+
+export function bubbleSay(text: string, holdMs = 2500) {
+  sayLine?.(text, holdMs)
+}
+
 export function createActivityBubbleService(params: { context: ReturnType<typeof createContext>['context'], window: BrowserWindow }) {
   const character = params.window
   let bubble: BrowserWindow | undefined
@@ -95,6 +102,13 @@ export function createActivityBubbleService(params: { context: ReturnType<typeof
     hideTimer = setTimeout(() => bubble && !bubble.isDestroyed() && bubble.hide(), 220)
   }
 
+  sayLine = (text, holdMs) => {
+    void show(text).then(() => {
+      clearTimeout(hideTimer)
+      hideTimer = setTimeout(hide, holdMs)
+    })
+  }
+
   const follow = () => {
     if (bubble?.isVisible())
       place()
@@ -111,6 +125,7 @@ export function createActivityBubbleService(params: { context: ReturnType<typeof
   })
 
   return () => {
+    sayLine = undefined
     clearTimeout(hideTimer)
     clearTimeout(staleTimer)
     if (!character.isDestroyed())

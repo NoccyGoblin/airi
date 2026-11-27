@@ -356,6 +356,13 @@ export const electronRoutineDue = defineEventa<Routine>('eventa:event:electron:f
  */
 export const electronReadDroppedFile = defineInvokeEventa<{ data: string, size: number }, { path: string }>('eventa:invoke:electron:fairy:read-dropped-file')
 
+/**
+ * FAIRY: what happens to the character on the desktop, so her model can act it out. The current model plays a
+ * fitting emotion. A future model can have its own animation for each state.
+ */
+export type AvatarState = 'thrown' | 'landed' | 'sleeping' | 'awake' | 'dancing' | 'still'
+export const electronAvatarState = defineEventa<{ state: AvatarState }>('eventa:event:electron:fairy:avatar-state')
+
 /** FAIRY: the few words in the bubble next to the character about what she does now. An empty text hides it. */
 export const electronActivityStatus = defineInvokeEventa<void, { text: string | null }>('eventa:invoke:electron:fairy:activity-status')
 

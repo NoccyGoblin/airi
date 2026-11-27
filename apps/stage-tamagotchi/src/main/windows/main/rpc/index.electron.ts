@@ -42,6 +42,7 @@ import { createOnboardingService } from '../../../services/airi/onboarding'
 import { createWidgetsService } from '../../../services/airi/widgets'
 import { createAutoUpdaterService } from '../../../services/electron'
 import { createActivityBubbleService } from '../../../services/fairy/activity-bubble'
+import { createDesktopLifeService } from '../../../services/fairy/desktop-life'
 import { createDiscordBotService } from '../../../services/fairy/discord'
 import { createFileDropService } from '../../../services/fairy/file-drop'
 import { createLiveModeService } from '../../../services/fairy/live-mode'
@@ -110,6 +111,8 @@ export async function setupMainWindowElectronInvokes(params: {
   createFileDropService({ context })
   // FAIRY: a bubble next to the character that says what she does.
   onWindowClosed(params.window, createActivityBubbleService({ context, window: params.window }))
+  // FAIRY: throws, naps, and other bits of life on the desktop.
+  onWindowClosed(params.window, createDesktopLifeService({ context, window: params.window }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

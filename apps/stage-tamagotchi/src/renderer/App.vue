@@ -67,6 +67,7 @@ import {
   electronPluginUnload,
 } from '../shared/eventa/plugin/host'
 import { electronPluginToolsChanged } from '../shared/eventa/plugin/tools'
+import { setupAvatarStateBridge } from './bridges/avatar-state'
 import { setupDiscordBridge } from './bridges/discord'
 import { initializeElectronAuthCallbackBridge } from './bridges/electron-auth-callback'
 import { setupFileDropBridge } from './bridges/file-drop'
@@ -334,6 +335,8 @@ function createFullStageRuntime() {
   setupFileDropBridge()
   // FAIRY: only the main window runs turns, so only it narrows their tools to the opened groups.
   setupToolboxBridge(context.value)
+  // FAIRY: only the main window shows her model, so only it acts out what happens to her on the desktop.
+  setupAvatarStateBridge(context.value)
 
   return {
     async initialize() {
