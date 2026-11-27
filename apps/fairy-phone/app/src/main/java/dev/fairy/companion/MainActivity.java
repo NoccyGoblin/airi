@@ -5,10 +5,14 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.webkit.PermissionRequest;
@@ -22,6 +26,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
 /**
  * The phone window to the character that runs on the PC. It shows the phone page that the PC serves on the
@@ -39,9 +48,14 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 1;
     private static final int ASK_MIC = 2;
 
+    /** Pictures are shrunk to this side, so they upload fast over mobile data. The page does the same. */
+    private static final int SHARE_IMAGE_SIDE = 1280;
+
     private WebView web;
     private boolean pageReady;
     private boolean listenWhenReady;
+    /** Something shared from another app, as the JSON that the page's `fairyShare` takes. */
+    private String pendingShare;
     private ValueCallback<Uri[]> pendingFiles;
 
     @Override
@@ -51,6 +65,7 @@ public class MainActivity extends Activity {
             requestPermissions(new String[] { Manifest.permission.RECORD_AUDIO }, ASK_MIC);
 
         listenWhenReady = getIntent().getBooleanExtra(EXTRA_LISTEN, false);
+        pendingShare = readShare(getIntent());
         if (savePairing(getIntent()))
             return;
         String url = prefs().getString(PAGE_URL, null);
@@ -66,6 +81,13 @@ public class MainActivity extends Activity {
         setIntent(intent);
         if (savePairing(intent))
             return;
+        String share = readShare(intent);
+        if (share != null) {
+            if (pageReady)
+                deliverShare(share);
+            else
+                pendingShare = share;
+        }
         if (intent.getBooleanExtra(EXTRA_LISTEN, false)) {
             if (pageReady)
                 listen();
@@ -149,6 +171,73 @@ public class MainActivity extends Activity {
         web.loadUrl(url);
     }
 
+    /**
+     * Reads what another app shared: a link or text, a picture, or both. Returns the JSON for the page, or null when
+     * the intent is no share.
+     */
+    private String readShare(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction()))
+            return null;
+        try {
+            JSONObject share = new JSONObject();
+            String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+            String subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+            if (subject != null && (text == null || !text.contains(subject)))
+                text = text == null ? subject : subject + "\n" + text;
+            if (text != null && !text.trim().isEmpty())
+                share.put("text", text.trim());
+            Uri stream = Build.VERSION.SDK_INT >= 33
+                ? intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class)
+                : intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            String type = intent.getType();
+            if (stream != null && type != null && type.startsWith("image/")) {
+                String image = imageDataUrl(stream);
+                if (image != null)
+                    share.put("image", image);
+            }
+            return share.length() > 0 ? share.toString() : null;
+        }
+        catch (Exception error) {
+            return null;
+        }
+    }
+
+    /** A shared picture as a small JPEG data URL, or null when it cannot be read. */
+    private String imageDataUrl(Uri uri) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                BitmapFactory.decodeStream(in, null, bounds);
+            }
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = 1;
+            while (Math.max(bounds.outWidth, bounds.outHeight) / (options.inSampleSize * 2) >= SHARE_IMAGE_SIDE)
+                options.inSampleSize *= 2;
+            Bitmap bitmap;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                bitmap = BitmapFactory.decodeStream(in, null, options);
+            }
+            if (bitmap == null)
+                return null;
+            float scale = Math.min(1f, (float) SHARE_IMAGE_SIDE / Math.max(bitmap.getWidth(), bitmap.getHeight()));
+            if (scale < 1f)
+                bitmap = Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale), Math.round(bitmap.getHeight() * scale), true);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out);
+            return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+        }
+        catch (Exception error) {
+            return null;
+        }
+    }
+
+    /** Hands a share to the page, which sends it to her. */
+    private void deliverShare(String share) {
+        if (web != null)
+            web.evaluateJavascript("window.fairyShare && window.fairyShare(" + share + ")", null);
+    }
+
     /** Starts hands-free listening on the page: it records until the owner stops talking. */
     private void listen() {
         if (web != null)
@@ -176,6 +265,11 @@ public class MainActivity extends Activity {
         @Override
         public void onPageFinished(WebView view, String url) {
             pageReady = true;
+            if (pendingShare != null) {
+                String share = pendingShare;
+                pendingShare = null;
+                view.postDelayed(() -> deliverShare(share), 600);
+            }
             if (listenWhenReady) {
                 listenWhenReady = false;
                 // The page connects first, then the microphone starts.

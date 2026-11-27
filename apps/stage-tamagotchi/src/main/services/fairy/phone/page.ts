@@ -259,6 +259,22 @@ export const PHONE_PAGE_HTML = /* html */ `<!doctype html>
   mic.addEventListener('pointerdown', e => { e.preventDefault(); mic.setPointerCapture(e.pointerId); startRec(false) })
   // The phone app calls this when the owner presses its assistant button.
   window.fairyListen = () => { if (key) { note('Listening…'); startRec(true) } }
+
+  // -- Share to her from another app: the phone app passes { text, image }, the home screen app passes the query --
+  window.fairyShare = (share) => {
+    if (!key || !share || (!share.text && !share.image)) return
+    const said = share.text ? share.text.slice(0, 3000) : ''
+    add('user', said ? '📤 ' + said : '📤', share.image)
+    ask({
+      text: said ? '(I shared this with you from another app) ' + said : '(I shared this picture with you from another app)',
+      image: share.image,
+    }, () => {})
+  }
+  const shared = [params.get('title'), params.get('text'), params.get('url')].filter(Boolean)
+  if (shared.length) {
+    history.replaceState(null, '', location.pathname)
+    setTimeout(() => window.fairyShare({ text: [...new Set(shared)].join('\\n') }), 300)
+  }
   mic.addEventListener('pointerup', stopRec)
   mic.addEventListener('pointercancel', stopRec)
   mic.addEventListener('contextmenu', e => e.preventDefault())
@@ -331,6 +347,8 @@ export const PHONE_MANIFEST = JSON.stringify({
   background_color: '#16131f',
   theme_color: '#16131f',
   icons: [{ src: './icon.svg', sizes: 'any', type: 'image/svg+xml' }],
+  // Android lists the home screen app in the share menu. Links and text arrive in the query of the page.
+  share_target: { action: './', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
 })
 
 export const PHONE_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#6d4bd8"/><text x="50" y="68" font-size="58" text-anchor="middle">🧚</text></svg>`

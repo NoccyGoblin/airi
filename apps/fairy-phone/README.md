@@ -8,6 +8,7 @@ the PC serves on the Tailscale network, so the phone and the PC share one charac
 - Shows the phone page: chat, photos, and voice messages.
 - Can be the phone's **digital assistant**, in place of Google's. A long press of the side button then opens the
   character, and she listens at once. Recording stops after a short silence.
+- Takes shares from other apps: a link, some text, or a picture goes to the character, who reacts to it.
 - Opens links to other sites in the browser, never inside the app.
 
 ## When to use it
