@@ -67,6 +67,10 @@ vi.mock('./builtin/watch', () => ({
   STOP_WATCHING_TOOL_NAME: 'stop_watching',
   watchTools: vi.fn(async () => ['watch_for', 'list_watches', 'stop_watching'].map(executableTool)),
 }))
+vi.mock('./builtin/sticky-notes', () => ({
+  STICKY_NOTE_TOOL_NAME: 'sticky_note',
+  stickyNoteTools: vi.fn(async () => [executableTool('sticky_note')]),
+}))
 vi.mock('./builtin/toolbox', () => ({
   TOOLBOX_TOOL_NAME: 'open_toolbox',
   toolboxTools: vi.fn(async () => [executableTool('open_toolbox')]),
@@ -154,6 +158,7 @@ describe('useTamagotchiBuiltinToolsStore', async () => {
       { id: 'tamagotchi:watch_for', defaultActive: false },
       { id: 'tamagotchi:list_watches', defaultActive: false },
       { id: 'tamagotchi:stop_watching', defaultActive: false },
+      { id: 'tamagotchi:sticky_note', defaultActive: false },
     ])
     expect(toolsStore.getToolsByNames('computer_use', 'computer_use_read_image')).toEqual([])
     expect(toolsStore.getToolsByNames('get_weather')[0]?.function.name).toBe('get_weather')

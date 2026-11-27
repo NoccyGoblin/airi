@@ -49,6 +49,7 @@ import { createLiveModeService } from '../../../services/fairy/live-mode'
 import { startLocalVoiceServer } from '../../../services/fairy/local-voice'
 import { createPhoneService } from '../../../services/fairy/phone'
 import { createRoutineScheduler } from '../../../services/fairy/routines'
+import { createStickyNotesService } from '../../../services/fairy/sticky-notes'
 import { createStopKeyService } from '../../../services/fairy/stop-key'
 import { createWanderService } from '../../../services/fairy/wander'
 import { setupBaseWindowElectronInvokes } from '../../shared/window'
@@ -113,6 +114,8 @@ export async function setupMainWindowElectronInvokes(params: {
   onWindowClosed(params.window, createActivityBubbleService({ context, window: params.window }))
   // FAIRY: throws, naps, and other bits of life on the desktop.
   onWindowClosed(params.window, createDesktopLifeService({ context, window: params.window }))
+  // FAIRY: sticky notes that she puts on the screen.
+  onWindowClosed(params.window, createStickyNotesService({ context }))
   const stopIOTraceRecording = registerIOTraceRecording(context, params.ioTraceRecording)
   onWindowClosed(params.window, stopIOTraceRecording)
 

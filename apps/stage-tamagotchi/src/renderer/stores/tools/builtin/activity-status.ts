@@ -60,6 +60,7 @@ const LINES: Record<string, (input: Input) => string> = {
   watch_for: input => withDetail('Keeping an eye out for', input.what),
   list_watches: () => 'Checking what I watch…',
   stop_watching: () => 'Stopping a watch…',
+  sticky_note: () => 'Writing you a note…',
   web_search: input => withDetail('Searching', input.query),
   wikipedia: input => withDetail('Reading up on', input.query ?? input.title),
   get_weather: () => 'Checking the weather…',

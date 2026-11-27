@@ -363,6 +363,9 @@ export const electronReadDroppedFile = defineInvokeEventa<{ data: string, size: 
 export type AvatarState = 'thrown' | 'landed' | 'sleeping' | 'awake' | 'dancing' | 'still'
 export const electronAvatarState = defineEventa<{ state: AvatarState }>('eventa:event:electron:fairy:avatar-state')
 
+/** FAIRY: puts a sticky note on the owner's screen. `by` signs it with the character's name. */
+export const electronStickyNote = defineInvokeEventa<{ count: number }, { text: string, by: string }>('eventa:invoke:electron:fairy:sticky-note')
+
 /** FAIRY: the few words in the bubble next to the character about what she does now. An empty text hides it. */
 export const electronActivityStatus = defineInvokeEventa<void, { text: string | null }>('eventa:invoke:electron:fairy:activity-status')
 
