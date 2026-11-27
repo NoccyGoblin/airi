@@ -1,7 +1,7 @@
 import { defineInvoke } from '@moeru/eventa'
 import { createContext } from '@moeru/eventa/adapters/electron/renderer'
 import { errorMessageFrom } from '@moeru/std'
-import { useLocalStorage } from '@vueuse/core'
+import { StorageSerializers, useLocalStorage } from '@vueuse/core'
 import { watch } from 'vue'
 
 import { electronCharacterSize } from '../../shared/eventa'
@@ -16,7 +16,7 @@ export const SPRITE_WINDOW = { width: 230, height: 460 }
  */
 export function useAvatarStyleWindow() {
   const style = useAvatarStyle()
-  const live2dSize = useLocalStorage<{ width: number, height: number } | null>('fairy/live2d-window-size', null)
+  const live2dSize = useLocalStorage<{ width: number, height: number } | null>('fairy/live2d-window-size', null, { serializer: StorageSerializers.object })
   const resize = defineInvoke(createContext(window.electron.ipcRenderer).context, electronCharacterSize)
 
   return watch(style, async (next, previous) => {
@@ -29,7 +29,7 @@ export function useAvatarStyleWindow() {
         if (before.height < SPRITE_WINDOW.height - 10)
           live2dSize.value = before
       }
-      else if (live2dSize.value) {
+      else if (live2dSize.value?.width && live2dSize.value.height) {
         await resize(live2dSize.value)
       }
     }
