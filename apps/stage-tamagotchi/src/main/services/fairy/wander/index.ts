@@ -46,9 +46,11 @@ export function isWanderPausedBesides(reason: string) {
 /** About 30 updates a second, smooth enough for a small window. */
 const FRAME_MS = 33
 /** She rests this long between flights, in a random time between the two. */
-const REST_MS = [6_000, 18_000] as const
-/** The mouse this close to her window counts as on her. */
-const HOVER_MARGIN = 24
+const REST_MS = [3_000, 8_000] as const
+/** She takes off this soon after the owner turns wander mode on, so the switch shows at once. */
+const FIRST_FLIGHT_MS = 1_000
+/** The mouse this close to her window counts as on her. Her window is already larger than she looks. */
+const HOVER_MARGIN = 0
 /** A move bigger than this that she did not make is the owner's drag. */
 const OWNER_MOVE = 12
 
@@ -153,7 +155,7 @@ export function createWanderService(params: { context: ReturnType<typeof createC
       flight = undefined
       return
     }
-    restUntil = Date.now() + 3_000
+    restUntil = Date.now() + FIRST_FLIGHT_MS
     timer = setInterval(tick, FRAME_MS)
   }
 
